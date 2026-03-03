@@ -1,0 +1,76 @@
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-14 md:h-16">
+      <a routerLink="/" fragment="inicio" class="flex items-center gap-3" (click)="closeMenu()">
+        <img
+          src="assets/SmartCampus Logo sin fondo.png"
+          alt="Smart Campus UTP Chiriquí"
+          class="h-10 w-auto object-contain sm:h-11 md:h-12"
+        />
+        <span class="font-semibold text-gray-800 text-base sm:text-lg md:text-xl hidden sm:inline">Smart Campus UTP Chiriquí</span>
+      </a>
+
+      <!-- Desktop menu + logo UTP -->
+      <div class="hidden md:flex items-center gap-6">
+        <ul class="flex items-center gap-8">
+          @for (link of navLinks; track link.fragment) {
+            <li>
+              <a
+                [routerLink]="['/']"
+                [fragment]="link.fragment"
+                class="text-gray-600 hover:text-utp-blue font-medium transition-colors"
+                (click)="closeMenu()"
+              >
+                {{ link.label }}
+              </a>
+            </li>
+          }
+        </ul>
+        <img
+          src="assets/6_logo_utp_-_rgb_oficial.png"
+          alt="Universidad Tecnológica de Panamá"
+          class="h-11 w-auto object-contain"
+        />
+      </div>
+
+      <!-- Mobile menu button -->
+      <button
+        type="button"
+        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen"
+        aria-label="Menú"
+      >
+        @if (menuOpen) {
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        } @else {
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        }
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    @if (menuOpen) {
+      <div class="md:hidden py-4 border-t border-gray-100">
+        <ul class="flex flex-col gap-2">
+          @for (link of navLinks; track link.fragment) {
+            <li>
+              <a
+                [routerLink]="['/']"
+                [fragment]="link.fragment"
+                class="block py-2 px-3 rounded-lg text-gray-600 hover:bg-utp-blue hover:text-white font-medium transition-colors"
+                (click)="closeMenu()"
+              >
+                {{ link.label }}
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+</nav>

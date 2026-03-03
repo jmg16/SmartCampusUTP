@@ -1,0 +1,82 @@
+<section id="unete" class="py-20 bg-gray-50">
+  <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-3xl md:text-4xl font-bold text-utp-blue text-center mb-4">Únete al proyecto</h2>
+    <p class="text-gray-600 text-center mb-10">
+      Regístrate con tu correo institucional y te mantendremos informado sobre Smart Campus UTP Chiriquí.
+    </p>
+
+    @if (enviado) {
+      <div class="rounded-xl bg-green-50 border border-green-200 p-6 text-center">
+        <p class="text-green-800 font-medium">¡Gracias! Hemos recibido tu registro.</p>
+        <p class="text-green-700 text-sm mt-1">Te contactaremos a través de tu correo institucional.</p>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-5">
+        @if (error) {
+          <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm">
+            {{ error }}
+          </div>
+        }
+
+        <div>
+          <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+          <input
+            id="nombre"
+            type="text"
+            formControlName="nombre"
+            class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition"
+            placeholder="Tu nombre"
+          />
+          @if (nombre?.invalid && nombre?.touched) {
+            <p class="mt-1 text-sm text-red-600">El nombre es requerido (mín. 2 caracteres).</p>
+          }
+        </div>
+
+        <div>
+          <label for="correo" class="block text-sm font-medium text-gray-700 mb-1">Correo institucional</label>
+          <input
+            id="correo"
+            type="email"
+            formControlName="correo"
+            class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition"
+            placeholder="tu.correo@utp.ac.pa"
+          />
+          @if (correo?.invalid && correo?.touched) {
+            <p class="mt-1 text-sm text-red-600">
+              Debe ser un correo válido que termine en &#64;utp.ac.pa
+            </p>
+          }
+        </div>
+
+        <div>
+          <label for="rol" class="block text-sm font-medium text-gray-700 mb-1">Rol en la universidad</label>
+          <select
+            id="rol"
+            formControlName="rol"
+            class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition bg-white"
+          >
+            <option value="">Selecciona tu rol</option>
+            @for (r of roles; track r.value) {
+              <option [value]="r.value">{{ r.label }}</option>
+            }
+          </select>
+          @if (rol?.invalid && rol?.touched) {
+            <p class="mt-1 text-sm text-red-600">Selecciona un rol.</p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="form.invalid || cargando"
+          class="w-full py-3 rounded-xl bg-utp-blue text-white font-semibold hover:bg-utp-blue-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          @if (cargando) {
+            Enviando…
+          } @else {
+            Enviar registro
+          }
+        </button>
+      </form>
+    }
+  </div>
+</section>
