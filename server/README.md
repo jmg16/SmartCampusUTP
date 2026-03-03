@@ -30,3 +30,16 @@ npm run dev
 ```
 
 En producción: `npm start`.
+
+## PM2 (producción)
+
+PM2 está instalado como dependencia de desarrollo. Para levantar la API con PM2:
+
+```bash
+cd server
+npm run pm2:start
+# o con el archivo de configuración:
+npx pm2 start ecosystem.config.cjs
+```
+
+Comandos útiles: `npm run pm2:stop`, `npm run pm2:restart`, `npm run pm2:logs`. Para que PM2 arranque al reiniciar el servidor Ubuntu: `pm2 startup` y `pm2 save` (requiere PM2 instalado globalmente: `sudo npm install -g pm2`).

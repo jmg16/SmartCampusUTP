@@ -30,7 +30,7 @@ export class FormularioComponent {
   ) {
     this.form = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(2)]],
-      correo: ['', [Validators.required, Validators.email, Validators.pattern(/\.utp\.ac\.pa$/i)]],
+      correo: ['', [Validators.required, Validators.email, Validators.pattern(/@utp\.ac\.pa$/i)]],
       rol: ['', Validators.required],
     });
   }
