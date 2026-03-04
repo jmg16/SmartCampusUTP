@@ -43,3 +43,7 @@ npx pm2 start ecosystem.config.cjs
 ```
 
 Comandos útiles: `npm run pm2:stop`, `npm run pm2:restart`, `npm run pm2:logs`. Para que PM2 arranque al reiniciar el servidor Ubuntu: `pm2 startup` y `pm2 save` (requiere PM2 instalado globalmente: `sudo npm install -g pm2`).
+
+## Bitácora de proyecto (dashboard admin)
+
+Endpoints bajo `/api/bitacora`: ver [CONFIGURAR-BITACORA-SERVIDOR.md](./CONFIGURAR-BITACORA-SERVIDOR.md) para configurar en el servidor la BD remota (192.168.10.11), JWT y usuario admin.

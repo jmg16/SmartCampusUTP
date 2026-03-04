@@ -8,6 +8,7 @@
 
 # Node
 /node_modules
+server/node_modules
 npm-debug.log
 yarn-error.log
 
@@ -40,3 +41,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Env con credenciales (solo en servidor)
+server/.env.bitacora
+.env.bitacora
