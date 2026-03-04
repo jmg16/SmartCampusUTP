@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Verificar conectividad a la BD de bitácora (10.192.64.250:5432).
+ * Verificar conectividad a la BD de bitácora (192.168.10.11:5432).
  * Ejecutar desde el servidor de la app (smartcampusch):
  *
  *   cd server && node scripts/verificar-conexion-bitacora.js
@@ -11,7 +11,7 @@
 
 const net = require('net');
 
-const HOST = process.env.BITACORA_DB_HOST || '10.192.64.250';
+const HOST = process.env.BITACORA_DB_HOST || '192.168.10.11';
 const PORT = parseInt(process.env.BITACORA_DB_PORT || '5432', 10);
 
 function checkTcp() {

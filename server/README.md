@@ -46,7 +46,7 @@ Comandos útiles: `npm run pm2:stop`, `npm run pm2:restart`, `npm run pm2:logs`.
 
 ## Bitácora de proyecto (dashboard admin)
 
-Endpoints bajo `/api/bitacora`: ver [CONFIGURAR-BITACORA-SERVIDOR.md](./CONFIGURAR-BITACORA-SERVIDOR.md) para configurar en el servidor la BD remota (host 10.192.64.250, puerto 5432), JWT y usuario admin.
+Endpoints bajo `/api/bitacora`: ver [CONFIGURAR-BITACORA-SERVIDOR.md](./CONFIGURAR-BITACORA-SERVIDOR.md) para configurar en el servidor la BD remota (host 192.168.10.11, puerto 5432), JWT y usuario admin.
 
 ## Actualizar servidor con la rama dev
 
