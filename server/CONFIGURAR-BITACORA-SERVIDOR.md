@@ -4,15 +4,15 @@ Sigue estos pasos **en el servidor** (por SSH, como `jmartinez`) para que la API
 
 ---
 
-## 1. Crear la tabla en la BD de bitácora (192.168.10.11)
+## 1. Crear la tabla en la BD de bitácora
 
-La base de datos está en **otro host** (`192.168.10.11`). Desde el servidor donde corre la API:
+La base de datos está en **otro host**: **10.192.64.250**, puerto **5432**. Base: `bitacora_db`, usuario: `bitacora_admin`. Desde el servidor donde corre la API:
 
 ```bash
-cd /home/jmartinez/smartcampus/smartcampus-web/server
+cd /ruta/al/repo/server   # ej. ~/smartcampus-web/server
 
-# Ejecutar el script SQL en la BD remota (ajusta la contraseña si es distinta)
-PGPASSWORD='ContraseñaSegura123' psql -h 192.168.10.11 -U bitacora_admin -d bitacora_db -f scripts/init-bitacora.sql
+# Ejecutar el script SQL en la BD remota (sustituye TU_PASSWORD por la contraseña de bitacora_admin)
+PGPASSWORD='TU_PASSWORD' psql -h 10.192.64.250 -p 5432 -U bitacora_admin -d bitacora_db -f scripts/init-bitacora.sql
 ```
 
 Si pide instalación de cliente PostgreSQL:
@@ -25,7 +25,7 @@ sudo apt install -y postgresql-client
 Comprueba que la tabla existe:
 
 ```bash
-PGPASSWORD='ContraseñaSegura123' psql -h 192.168.10.11 -U bitacora_admin -d bitacora_db -c "\dt project_logs"
+PGPASSWORD='TU_PASSWORD' psql -h 10.192.64.250 -p 5432 -U bitacora_admin -d bitacora_db -c "\dt project_logs"
 ```
 
 ---
@@ -36,7 +36,7 @@ La API necesita estas variables (además de `DATABASE_URL` para la landing):
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `BITACORA_DATABASE_URL` | Conexión a la BD de bitácora | `postgres://bitacora_admin:ContraseñaSegura123@192.168.10.11:5432/bitacora_db` |
+| `BITACORA_DATABASE_URL` | Conexión a la BD de bitácora | `postgres://bitacora_admin:TU_PASSWORD@10.192.64.250:5432/bitacora_db` |
 | `BITACORA_JWT_SECRET` | Clave secreta para firmar el JWT (usa una larga y aleatoria) | `mi_clave_secreta_muy_larga_123` |
 | `BITACORA_ADMIN_USER` | Usuario para el login del dashboard | `jmartinez` |
 | `BITACORA_ADMIN_PASSWORD` | Contraseña del admin del dashboard | La que elijas |
@@ -48,7 +48,7 @@ La API necesita estas variables (además de `DATABASE_URL` para la landing):
 En el servidor, crea un archivo **solo en el servidor** (no lo subas a git) con las variables reales:
 
 ```bash
-cd /home/jmartinez/smartcampus/smartcampus-web/server
+cd /ruta/al/repo/server   # ej. ~/smartcampus-web/server
 nano .env.bitacora
 ```
 
@@ -56,7 +56,7 @@ Pega y **ajusta** los valores (contraseña real, JWT secreto fuerte, usuario/con
 
 ```env
 DATABASE_URL=postgresql://smartcampus:SmartCampusutp7@localhost:5432/smartcampus
-BITACORA_DATABASE_URL=postgres://bitacora_admin:ContraseñaSegura123@192.168.10.11:5432/bitacora_db
+BITACORA_DATABASE_URL=postgres://bitacora_admin:TU_PASSWORD@10.192.64.250:5432/bitacora_db
 BITACORA_JWT_SECRET=pon_aqui_una_clave_larga_y_aleatoria
 BITACORA_ADMIN_USER=jmartinez
 BITACORA_ADMIN_PASSWORD=tu_contraseña_admin
@@ -65,7 +65,7 @@ BITACORA_ADMIN_PASSWORD=tu_contraseña_admin
 Guarda (Ctrl+O, Enter, Ctrl+X). Luego arranca/reinicia la API cargando ese archivo:
 
 ```bash
-cd /home/jmartinez/smartcampus/smartcampus-web/server
+cd /ruta/al/repo/server
 npm install
 set -a && source .env.bitacora && set +a
 npx pm2 delete smartcampus-api 2>/dev/null || true
@@ -76,7 +76,7 @@ npx pm2 save
 Para reinicios futuros (tras `git pull` o cambios):
 
 ```bash
-cd /home/jmartinez/smartcampus/smartcampus-web/server
+cd /ruta/al/repo/server
 set -a && source .env.bitacora && set +a
 npx pm2 restart smartcampus-api --update-env
 ```
@@ -88,11 +88,11 @@ npx pm2 restart smartcampus-api --update-env
 Si prefieres no usar `.env.bitacora`, puedes exportar y arrancar así (sustituye los valores):
 
 ```bash
-cd /home/jmartinez/smartcampus/smartcampus-web/server
+cd /ruta/al/repo/server
 npm install
 
 export DATABASE_URL="postgresql://smartcampus:SmartCampusutp7@localhost:5432/smartcampus"
-export BITACORA_DATABASE_URL="postgres://bitacora_admin:ContraseñaSegura123@192.168.10.11:5432/bitacora_db"
+export BITACORA_DATABASE_URL="postgres://bitacora_admin:TU_PASSWORD@10.192.64.250:5432/bitacora_db"
 export BITACORA_JWT_SECRET="una_clave_secreta_larga_y_unica"
 export BITACORA_ADMIN_USER="jmartinez"
 export BITACORA_ADMIN_PASSWORD="tu_contraseña_admin"
@@ -133,14 +133,27 @@ Deberías recibir `{"ok":true,"datos":[]}` o con registros.
 
 ## 6. Firewall / red
 
-El servidor donde corre Node (smartcampusch) debe poder conectar a **192.168.10.11:5432** (PostgreSQL). Si hay firewall, abre el puerto 5432 hacia esa IP o verifica que estén en la misma red.
+El servidor donde corre Node (smartcampusch) debe poder conectar a **10.192.64.250:5432** (PostgreSQL). Si hay firewall, abre el puerto 5432 hacia esa IP o verifica que estén en la misma red.
+
+**Comprobar conectividad** (desde el servidor de la app):
+
+```bash
+cd /ruta/al/repo/server
+npm run verificar-bitacora
+```
+
+Con variables de bitácora cargadas (prueba también la conexión real a PostgreSQL):
+
+```bash
+set -a && source .env.bitacora && set +a && npm run verificar-bitacora
+```
 
 ---
 
 ## Resumen rápido
 
 1. Instalar `postgresql-client` si hace falta.
-2. Ejecutar `scripts/init-bitacora.sql` en la BD `bitacora_db` en 192.168.10.11.
+2. Ejecutar `scripts/init-bitacora.sql` en la BD `bitacora_db` en 10.192.64.250:5432.
 3. Crear `.env.bitacora` (o exportar variables) con `BITACORA_*` y credenciales admin.
 4. `npm install` en `server`, luego `pm2 start` o `pm2 restart` con esas variables.
 5. Probar `POST /api/bitacora/login` y `GET /api/bitacora/logs`.

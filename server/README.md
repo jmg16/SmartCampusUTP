@@ -46,4 +46,14 @@ Comandos útiles: `npm run pm2:stop`, `npm run pm2:restart`, `npm run pm2:logs`.
 
 ## Bitácora de proyecto (dashboard admin)
 
-Endpoints bajo `/api/bitacora`: ver [CONFIGURAR-BITACORA-SERVIDOR.md](./CONFIGURAR-BITACORA-SERVIDOR.md) para configurar en el servidor la BD remota (192.168.10.11), JWT y usuario admin.
+Endpoints bajo `/api/bitacora`: ver [CONFIGURAR-BITACORA-SERVIDOR.md](./CONFIGURAR-BITACORA-SERVIDOR.md) para configurar en el servidor la BD remota (host 10.192.64.250, puerto 5432), JWT y usuario admin.
+
+## Actualizar servidor con la rama dev
+
+Desde el servidor, en la raíz del repo (por ejemplo `~/smartcampus-web`):
+
+```bash
+bash scripts/actualizar-servidor.sh
+```
+
+El script hace: `git pull origin dev`, `npm install`, build de Angular, copia de `dist/smartcampus-web/browser/` a `~/smartcampus/web` y reinicio de la API con PM2 (`smartcampus-api`). Puedes cambiar la carpeta de destino con `WEB_ROOT=/ruta/custom bash scripts/actualizar-servidor.sh`.
