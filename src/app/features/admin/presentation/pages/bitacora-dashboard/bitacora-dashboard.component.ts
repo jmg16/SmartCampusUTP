@@ -24,6 +24,7 @@ export class BitacoraDashboardComponent implements OnInit {
   readonly estados: BitacoraStatus[] = ['En progreso', 'Completado', 'Bloqueado'];
 
   filtroEstado = signal<BitacoraStatus | ''>('');
+  mostrarConfirmacionLogout = signal(false);
 
   form = this.fb.group({
     id: [null as number | null],
@@ -141,7 +142,16 @@ export class BitacoraDashboardComponent implements OnInit {
     this.cargar();
   }
 
-  cerrarSesion(): void {
+  abrirConfirmacionLogout(): void {
+    this.mostrarConfirmacionLogout.set(true);
+  }
+
+  cancelarCerrarSesion(): void {
+    this.mostrarConfirmacionLogout.set(false);
+  }
+
+  confirmarCerrarSesion(): void {
+    this.mostrarConfirmacionLogout.set(false);
     this.bitacora.logout();
     this.router.navigateByUrl('/admin/login');
   }

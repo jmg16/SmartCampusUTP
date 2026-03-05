@@ -5,9 +5,9 @@
     <div class="max-w-6xl mx-auto flex items-center justify-between px-4 py-4">
       <div class="flex items-center gap-3">
         <img
-          src="assets/SmartCampus Logo sin letras.png"
+          src="assets/logo_letras_blancas.png"
           alt="Smart Campus UTP Chiriquí"
-          class="h-9 w-auto object-contain drop-shadow-md"
+          class="h-10 w-auto object-contain drop-shadow-md"
         />
         <div>
           <p class="text-[11px] font-semibold tracking-wide uppercase text-blue-100">
@@ -40,7 +40,7 @@
         </a>
         <button
           type="button"
-          (click)="cerrarSesion()"
+          (click)="abrirConfirmacionLogout()"
           class="inline-flex items-center justify-center h-8 w-8 rounded-full border border-white/30 text-blue-50 hover:bg-white/10 hover:text-white transition-colors"
           title="Cerrar sesión"
           aria-label="Cerrar sesión"
@@ -281,5 +281,47 @@
       }
     </section>
   </main>
+
+  @if (mostrarConfirmacionLogout()) {
+    <div
+      class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div class="w-full max-w-md rounded-2xl overflow-hidden bg-white shadow-2xl border border-slate-200">
+        <div class="bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark px-5 py-4 text-white">
+          <p class="text-[11px] font-semibold tracking-[0.25em] uppercase text-blue-100">
+            Confirmar acción
+          </p>
+          <h2 class="mt-1 text-lg font-semibold">¿Cerrar sesión del panel?</h2>
+        </div>
+        <div class="px-5 py-4 space-y-3 text-sm text-slate-700">
+          <p>
+            Vas a salir del <span class="font-semibold">panel administrativo de la bitácora</span>. Cualquier
+            cambio no guardado en el formulario actual se perderá.
+          </p>
+          <p class="text-xs text-slate-500">
+            Podrás volver a acceder iniciando sesión nuevamente con tu usuario y contraseña.
+          </p>
+        </div>
+        <div class="px-5 py-4 flex justify-end gap-3 bg-slate-50 border-t border-slate-200">
+          <button
+            type="button"
+            (click)="cancelarCerrarSesion()"
+            class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmarCerrarSesion()"
+            class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold bg-utp-blue text-white hover:bg-utp-blue-dark shadow-sm transition-colors"
+          >
+            Sí, cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </section>
 
