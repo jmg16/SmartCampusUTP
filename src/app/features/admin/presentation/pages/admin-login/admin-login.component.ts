@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,7 +10,7 @@ import { BitacoraService } from '../../../../../core/services/bitacora.service';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admin-login.component.html',
 })
-export class AdminLoginComponent {
+export class AdminLoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private bitacora = inject(BitacoraService);
   private router = inject(Router);
@@ -29,6 +29,12 @@ export class AdminLoginComponent {
 
   get password() {
     return this.form.get('password');
+  }
+
+  ngOnInit(): void {
+    if (this.bitacora.isAuthenticated()) {
+      this.router.navigateByUrl('/admin/bitacora');
+    }
   }
 
   async enviar(): Promise<void> {

@@ -1,13 +1,18 @@
-# Ejemplo de configuración Nginx para Smart Campus UTP Chiriquí
-# Copiar a /etc/nginx/sites-available/ y enlazar desde sites-enabled.
-# Reemplazar /ruta/al/proyecto y server_name según el servidor.
+# Configuración Nginx para Smart Campus UTP Chiriquí
+# Reemplaza tu bloque server actual (el que solo hace proxy_pass a 3000) por este.
+#
+# En el servidor:
+#   1. Editar y poner la ruta real del build (abajo en "root").
+#   2. sudo cp nginx/smartcampus.conf.example /etc/nginx/sites-available/smartcampus
+#   3. sudo ln -sf /etc/nginx/sites-available/smartcampus /etc/nginx/sites-enabled/
+#   4. sudo nginx -t && sudo systemctl reload nginx
 
 server {
     listen 80;
     server_name smartcampusch.utp.ac.pa;
 
-    # Frontend Angular (archivos estáticos del build)
-    root /ruta/al/proyecto/smartcampus-web/dist/smartcampus-web/browser;
+    # Frontend Angular: archivos estáticos del build (NO proxy todo a Node)
+    root /home/jmartinez/smartcampus/smartcampus-web/dist/smartcampus-web/browser;
     index index.html;
 
     # API → Backend Node.js (Express en puerto 3000)
@@ -20,12 +25,12 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # SPA: todas las rutas sirven index.html
+    # SPA: rutas de Angular (/, /admin, /admin/login, etc.) sirven index.html
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # Opcional: cache para assets con hash
+    # Cache para assets con hash
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";

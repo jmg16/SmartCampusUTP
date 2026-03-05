@@ -384,6 +384,11 @@ app.post('/api/registro', async (req, res) => {
   }
 });
 
+// Ruta base informativa para evitar "Cannot GET /" cuando se accede directo al puerto de la API
+app.get('/', (_req, res) => {
+  res.send('API Smart Campus en funcionamiento');
+});
+
 app.listen(PORT, () => {
   console.log(`API Smart Campus escuchando en http://localhost:${PORT}`);
 });

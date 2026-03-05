@@ -30,8 +30,38 @@ export class BitacoraService {
     }
   }
 
+  private decodeToken(token: string): any | null {
+    try {
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      if (typeof atob === 'undefined') {
+        return null;
+      }
+      const json = atob(normalized);
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
   isAuthenticated(): boolean {
-    return !!this.token;
+    const t = this.token;
+    if (!t) return false;
+
+    const payload = this.decodeToken(t);
+    const exp = payload?.exp;
+    if (typeof exp !== 'number') {
+      return true;
+    }
+
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    if (exp <= nowInSeconds) {
+      this.logout();
+      return false;
+    }
+
+    return true;
   }
 
   logout(): void {
