@@ -10,6 +10,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'bitacora',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/bitacora-public/bitacora-public.component').then(
+        (m) => m.BitacoraPublicComponent
+      ),
+  },
+  {
     path: 'admin',
     redirectTo: 'admin/login',
     pathMatch: 'full',

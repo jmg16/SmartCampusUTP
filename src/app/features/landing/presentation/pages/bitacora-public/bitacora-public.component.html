@@ -1,0 +1,97 @@
+<div class="min-h-screen flex flex-col">
+  <app-navbar />
+  <main class="flex-1">
+    <!-- Cabecera tipo hero, identidad visual del sitio -->
+    <section class="relative pt-24 pb-16 overflow-hidden">
+      <div
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
+        style="background-image: url('assets/1-Smart-City-Principal.jpg');"
+        aria-hidden="true"
+      ></div>
+      <div class="absolute inset-0 bg-utp-blue/80" aria-hidden="true"></div>
+      <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+          Bitácora del proyecto
+        </h1>
+        <p class="mt-4 text-lg text-blue-100 max-w-2xl mx-auto">
+          Historial de avances del Smart Campus UTP Chiriquí. Registros ordenados del más reciente al más antiguo.
+        </p>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent"></div>
+    </section>
+
+    <!-- Contenido: listado de avances -->
+    <section class="py-12 md:py-16 bg-gray-50">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <h2 class="text-xl font-bold text-utp-blue">Historial de avances</h2>
+          <div class="flex items-center gap-2">
+            <label for="filtro-bitacora" class="text-sm text-gray-600">Estado:</label>
+            <select
+              id="filtro-bitacora"
+              class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none"
+              [value]="filtroEstado()"
+              (change)="onFiltroChange($event)"
+            >
+              <option value="">Todos</option>
+              @for (estado of estados; track estado) {
+                <option [value]="estado">{{ estado }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              (click)="cargar()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Recargar
+            </button>
+          </div>
+        </div>
+
+        @if (cargando()) {
+          <div class="rounded-2xl bg-white shadow-lg border border-gray-100 p-8 text-center">
+            <p class="text-gray-500">Cargando historial…</p>
+          </div>
+        } @else if (error()) {
+          <div class="rounded-2xl bg-white shadow-lg border border-red-100 p-6 text-center text-red-700">
+            {{ error() }}
+          </div>
+        } @else if (logs().length === 0) {
+          <div class="rounded-2xl bg-white shadow-lg border border-gray-100 p-8 text-center text-gray-500">
+            Aún no hay avances registrados en la bitácora.
+          </div>
+        } @else {
+          <ul class="space-y-4" role="list">
+            @for (log of logs(); track log.id) {
+              <li>
+                <article class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl hover:border-utp-blue/20 transition-all duration-300">
+                  <div class="p-6 sm:p-8">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div class="min-w-0 flex-1">
+                        <h3 class="text-lg font-bold text-utp-blue">{{ log.title }}</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                          {{ log.author }} · {{ log.created_at | date : 'longDate' }} a las {{ log.created_at | date : 'shortTime' }}
+                        </p>
+                      </div>
+                      <span
+                        class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shrink-0"
+                        [ngClass]="statusClass(log.status_tags)"
+                      >
+                        {{ log.status_tags }}
+                      </span>
+                    </div>
+                    <p class="mt-4 text-gray-700 leading-relaxed whitespace-pre-wrap">{{ log.description }}</p>
+                  </div>
+                </article>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
+  </main>
+  <app-footer />
+</div>

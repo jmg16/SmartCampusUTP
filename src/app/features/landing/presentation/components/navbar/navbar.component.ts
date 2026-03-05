@@ -12,10 +12,11 @@ import { RouterLink } from '@angular/router';
 export class NavbarComponent {
   menuOpen = false;
 
-  navLinks = [
+  navLinks: { label: string; fragment?: string; route?: string }[] = [
     { label: 'Inicio', fragment: 'inicio' },
     { label: 'Filosofía', fragment: 'filosofia' },
     { label: 'Equipo', fragment: 'equipo' },
+    { label: 'Bitácora', route: '/bitacora' },
     { label: 'Únete', fragment: 'unete' },
   ];
 
