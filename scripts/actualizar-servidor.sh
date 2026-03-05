@@ -33,10 +33,17 @@ echo ""
 echo "==> API: instalar deps y reiniciar PM2 (smartcampus-api)"
 cd "$REPO_DIR/server"
 npm install --production
+# Cargar .env.bitacora para que PM2 herede BITACORA_* (varios admins, JWT, BD)
+if [[ -f .env.bitacora ]]; then
+  set -a
+  source .env.bitacora
+  set +a
+  echo "    (.env.bitacora cargado para este reinicio)"
+fi
 if command -v pm2 &>/dev/null; then
   pm2 restart smartcampus-api --update-env || pm2 start ecosystem.config.cjs
 else
-  echo "    (pm2 no encontrado; si la API corre con PM2, ejecuta: pm2 restart smartcampus-api)"
+  npx pm2 restart smartcampus-api --update-env || npx pm2 start ecosystem.config.cjs
 fi
 
 echo ""

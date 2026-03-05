@@ -1,7 +1,34 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
+
+// Cargar .env.bitacora si existe (para que varios admins funcionen aunque PM2 no herede las variables)
+const envBitacoraPath = path.join(__dirname, '.env.bitacora');
+if (fs.existsSync(envBitacoraPath)) {
+  try {
+    const content = fs.readFileSync(envBitacoraPath, 'utf8');
+    for (const line of content.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const eq = trimmed.indexOf('=');
+        if (eq > 0) {
+          const key = trimmed.slice(0, eq).trim();
+          let val = trimmed.slice(eq + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          if (!(key in process.env)) process.env[key] = val;
+        }
+      }
+    }
+    console.log('[bitacora] Variables cargadas desde .env.bitacora');
+  } catch (e) {
+    console.warn('[bitacora] No se pudo leer .env.bitacora:', e.message);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,17 +59,39 @@ if (process.env.BITACORA_DATABASE_URL) {
 const BITACORA_JWT_SECRET = process.env.BITACORA_JWT_SECRET;
 const BITACORA_ADMIN_USER = process.env.BITACORA_ADMIN_USER;
 const BITACORA_ADMIN_PASSWORD = process.env.BITACORA_ADMIN_PASSWORD;
+// Opcional: más admins como "usuario1:contraseña1,usuario2:contraseña2"
+const BITACORA_ADMIN_CREDENTIALS_RAW = process.env.BITACORA_ADMIN_CREDENTIALS || '';
 
-if (!BITACORA_JWT_SECRET || !BITACORA_ADMIN_USER || !BITACORA_ADMIN_PASSWORD) {
+function getBitacoraAdminList() {
+  const list = [];
+  if (BITACORA_ADMIN_USER && BITACORA_ADMIN_PASSWORD) {
+    list.push({ user: BITACORA_ADMIN_USER, password: BITACORA_ADMIN_PASSWORD });
+  }
+  const parts = BITACORA_ADMIN_CREDENTIALS_RAW.split(',').map((s) => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    const idx = part.indexOf(':');
+    if (idx > 0) {
+      list.push({ user: part.slice(0, idx).trim(), password: part.slice(idx + 1).trim() });
+    }
+  }
+  return list;
+}
+
+const BITACORA_ADMIN_LIST = getBitacoraAdminList();
+const hasAnyAdmin = BITACORA_ADMIN_LIST.length > 0;
+
+if (!BITACORA_JWT_SECRET || !hasAnyAdmin) {
   console.warn(
-    '[bitacora] Faltan variables de entorno BITACORA_JWT_SECRET, BITACORA_ADMIN_USER o BITACORA_ADMIN_PASSWORD. Login y endpoints protegidos devolverán 503 hasta configurarlas.'
+    '[bitacora] Faltan variables de entorno BITACORA_JWT_SECRET o al menos un admin (BITACORA_ADMIN_USER/PASSWORD o BITACORA_ADMIN_CREDENTIALS). Login y endpoints protegidos devolverán 503 hasta configurarlas.'
   );
+} else {
+  console.log('[bitacora] Admins cargados:', BITACORA_ADMIN_LIST.length, '→ usuarios:', BITACORA_ADMIN_LIST.map((c) => c.user).join(', '));
 }
 
 const BITACORA_STATUS = ['En progreso', 'Completado', 'Bloqueado'];
 
 function ensureBitacoraConfig(res) {
-  if (!bitacoraPool || !BITACORA_JWT_SECRET || !BITACORA_ADMIN_USER || !BITACORA_ADMIN_PASSWORD) {
+  if (!bitacoraPool || !BITACORA_JWT_SECRET || !hasAnyAdmin) {
     res.status(503).json({
       ok: false,
       mensaje: 'Servicio de bitácora no está configurado en el servidor.',
@@ -90,7 +139,7 @@ app.get('/api/health', (req, res) => {
 app.post('/api/bitacora/login', (req, res) => {
   const { usuario, password } = req.body || {};
 
-  if (!BITACORA_JWT_SECRET || !BITACORA_ADMIN_USER || !BITACORA_ADMIN_PASSWORD) {
+  if (!BITACORA_JWT_SECRET || !hasAnyAdmin) {
     return res.status(503).json({
       ok: false,
       mensaje: 'Login de bitácora no está configurado en el servidor.',
@@ -104,7 +153,12 @@ app.post('/api/bitacora/login', (req, res) => {
     });
   }
 
-  if (usuario !== BITACORA_ADMIN_USER || password !== BITACORA_ADMIN_PASSWORD) {
+  const userTrim = String(usuario).trim();
+  const passTrim = String(password).trim();
+  const valid = BITACORA_ADMIN_LIST.some(
+    (c) => userTrim === c.user && passTrim === c.password
+  );
+  if (!valid) {
     return res.status(401).json({
       ok: false,
       mensaje: 'Credenciales inválidas.',

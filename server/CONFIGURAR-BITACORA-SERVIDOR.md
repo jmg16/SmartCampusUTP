@@ -38,8 +38,9 @@ La API necesita estas variables (además de `DATABASE_URL` para la landing):
 |----------|-------------|---------|
 | `BITACORA_DATABASE_URL` | Conexión a la BD de bitácora | `postgres://bitacora_admin:TU_PASSWORD@192.168.10.11:5432/bitacora_db` |
 | `BITACORA_JWT_SECRET` | Clave secreta para firmar el JWT (usa una larga y aleatoria) | `mi_clave_secreta_muy_larga_123` |
-| `BITACORA_ADMIN_USER` | Usuario para el login del dashboard | `jmartinez` |
-| `BITACORA_ADMIN_PASSWORD` | Contraseña del admin del dashboard | La que elijas |
+| `BITACORA_ADMIN_USER` | Usuario para el login del dashboard (primer admin) | `jmartinez` |
+| `BITACORA_ADMIN_PASSWORD` | Contraseña del primer admin | La que elijas |
+| `BITACORA_ADMIN_CREDENTIALS` | Opcional. Más admins: `usuario2:contraseña2,usuario3:contraseña3` | `admin:MiPass123,maria:OtraPass456` |
 
 ---
 
@@ -80,6 +81,10 @@ cd /ruta/al/repo/server
 set -a && source .env.bitacora && set +a
 npx pm2 restart smartcampus-api --update-env
 ```
+
+**Importante:** Si usas `scripts/actualizar-servidor.sh`, ese script ya carga `.env.bitacora` antes de reiniciar PM2, así que los admins extra (`BITACORA_ADMIN_CREDENTIALS`) se mantienen.
+
+Tras el arranque, en los logs de la API deberías ver algo como: `[bitacora] Admins cargados: 2 → usuarios: jmartinez, adminSanjur`. Si solo sale 1 usuario, la variable `BITACORA_ADMIN_CREDENTIALS` no llegó al proceso (reinicia en la misma shell donde haces `source .env.bitacora`).
 
 ---
 
