@@ -45,3 +45,6 @@ Thumbs.db
 # Env con credenciales (solo en servidor)
 server/.env.bitacora
 .env.bitacora
+
+# Imágenes subidas por el panel admin (bitácora)
+server/uploads/

@@ -2,7 +2,9 @@
 # Reemplaza tu bloque server actual (el que solo hace proxy_pass a 3000) por este.
 #
 # En el servidor:
-#   1. Editar y poner la ruta real del build (abajo en "root").
+#   1. Editar "root" (abajo): debe ser UNA de estas dos rutas:
+#      - /home/TU_USUARIO/smartcampus/web  (si usas scripts/actualizar-servidor.sh, que copia ahí)
+#      - /home/TU_USUARIO/smartcampus/smartcampus-web/dist/smartcampus-web/browser  (build dentro del repo)
 #   2. sudo cp nginx/smartcampus.conf.example /etc/nginx/sites-available/smartcampus
 #   3. sudo ln -sf /etc/nginx/sites-available/smartcampus /etc/nginx/sites-enabled/
 #   4. sudo nginx -t && sudo systemctl reload nginx

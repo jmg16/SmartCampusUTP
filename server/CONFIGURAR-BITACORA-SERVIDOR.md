@@ -28,6 +28,12 @@ Comprueba que la tabla existe:
 PGPASSWORD='TU_PASSWORD' psql -h 192.168.10.11 -p 5432 -U bitacora_admin -d bitacora_db -c "\dt project_logs"
 ```
 
+Si la tabla ya existía antes de añadir la imagen de portada, ejecuta la migración:
+
+```bash
+PGPASSWORD='TU_PASSWORD' psql -h 192.168.10.11 -p 5432 -U bitacora_admin -d bitacora_db -f scripts/alter-bitacora-add-cover.sql
+```
+
 ---
 
 ## 2. Variables de entorno para la API

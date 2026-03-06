@@ -1,6 +1,6 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { ProjectLog, BitacoraStatus } from '../../../../../shared/models/bitacora.model';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
@@ -15,11 +15,26 @@ import { FooterComponent } from '../../components/footer/footer.component';
 })
 export class BitacoraPublicComponent implements OnInit {
   private bitacora = inject(BitacoraService);
+  private router = inject(Router);
 
   logs = signal<ProjectLog[]>([]);
   cargando = signal(true);
   error = signal<string | null>(null);
   filtroEstado = signal<BitacoraStatus | ''>('');
+  busqueda = signal('');
+
+  /** Lista filtrada por texto de búsqueda (título, autor o descripción). */
+  logsFiltrados = computed(() => {
+    const lista = this.logs();
+    const q = this.busqueda().trim().toLowerCase();
+    if (!q) return lista;
+    return lista.filter(
+      (log) =>
+        log.title.toLowerCase().includes(q) ||
+        log.author.toLowerCase().includes(q) ||
+        log.description.toLowerCase().includes(q)
+    );
+  });
 
   readonly estados: BitacoraStatus[] = ['En progreso', 'Completado', 'Bloqueado'];
 
@@ -48,6 +63,10 @@ export class BitacoraPublicComponent implements OnInit {
     const value = select.value as BitacoraStatus | '';
     this.filtroEstado.set(value);
     this.cargar();
+  }
+
+  irADetalle(id: number): void {
+    this.router.navigate(['/bitacora/avance', id]);
   }
 
   statusClass(status: BitacoraStatus): string {

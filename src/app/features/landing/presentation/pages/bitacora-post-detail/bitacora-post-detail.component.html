@@ -1,0 +1,62 @@
+<div class="min-h-screen flex flex-col">
+  <app-navbar />
+  <main class="flex-1">
+    <section class="py-12 md:py-16 bg-gray-50">
+      <div class="w-full px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6 mb-4">
+        <a
+          routerLink="/bitacora"
+          class="inline-flex items-center gap-2 text-sm font-medium text-utp-blue hover:text-utp-blue-dark"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver al historial
+        </a>
+      </div>
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        @if (cargando()) {
+          <div class="rounded-2xl bg-white shadow-lg border border-gray-100 p-8 text-center">
+            <p class="text-gray-500">Cargando…</p>
+          </div>
+        } @else if (error()) {
+          <div class="rounded-2xl bg-white shadow-lg border border-red-100 p-6 text-center text-red-700">
+            {{ error() }}
+          </div>
+        } @else if (post()) {
+          <article class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-6 sm:p-8">
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <div class="min-w-0">
+                  <h1 class="text-2xl font-bold text-utp-blue">{{ post()!.title }}</h1>
+                  <p class="mt-1 text-sm text-gray-500">
+                    {{ post()!.author }} · {{ post()!.created_at | date : 'longDate' }} a las {{ post()!.created_at | date : 'shortTime' }}
+                  </p>
+                </div>
+                <span
+                  class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium shrink-0"
+                  [ngClass]="statusClass(post()!.status_tags)"
+                >
+                  {{ post()!.status_tags }}
+                </span>
+              </div>
+              @if (post()!.cover_image) {
+                <div class="my-6 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 max-w-lg">
+                  <img
+                    [src]="post()!.cover_image"
+                    [alt]="'Portada: ' + post()!.title"
+                    class="w-full h-auto max-h-80 object-contain object-center"
+                  />
+                </div>
+              }
+              <div class="prose prose-gray max-w-none mt-4">
+                <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ post()!.description }}</p>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  </main>
+  <app-footer />
+</div>

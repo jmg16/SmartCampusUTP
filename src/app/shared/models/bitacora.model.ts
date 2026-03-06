@@ -7,6 +7,8 @@ export interface ProjectLog {
   status_tags: BitacoraStatus;
   author: string;
   created_at: string;
+  /** Ruta de la imagen de portada (ej. /api/bitacora/uploads/xxx.jpg) */
+  cover_image?: string | null;
 }
 
 export interface BitacoraLoginRequest {

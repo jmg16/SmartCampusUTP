@@ -29,6 +29,16 @@ echo "==> Copiando dist/smartcampus-web/browser -> $WEB_ROOT"
 mkdir -p "$WEB_ROOT"
 rsync -av --delete dist/smartcampus-web/browser/ "$WEB_ROOT/"
 
+# Marcar fecha de despliegue (para comprobar que este script actualizó los archivos)
+DEPLOY_MARKER="Última actualización: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "$DEPLOY_MARKER" > "$WEB_ROOT/.deploy-date"
+echo "$DEPLOY_MARKER" > "dist/smartcampus-web/browser/.deploy-date"
+
+echo ""
+echo "==> IMPORTANTE: Nginx debe tener 'root' apuntando a una de estas rutas:"
+echo "    - $WEB_ROOT"
+echo "    - $REPO_DIR/dist/smartcampus-web/browser"
+echo "    (Comprueba con: grep -r 'root' /etc/nginx/)"
 echo ""
 echo "==> API: instalar deps y reiniciar PM2 (smartcampus-api)"
 cd "$REPO_DIR/server"
@@ -47,4 +57,7 @@ else
 fi
 
 echo ""
-echo "==> Listo. Frontend en $WEB_ROOT; recarga Nginx si aplica: sudo systemctl reload nginx"
+echo "==> Listo. Para verificar que el sitio es el recién desplegado:"
+echo "    cat $WEB_ROOT/.deploy-date"
+echo "    (o cat $REPO_DIR/dist/smartcampus-web/browser/.deploy-date si Nginx apunta al dist del repo)"
+echo "    Recarga Nginx si aplica: sudo systemctl reload nginx"

@@ -19,6 +19,7 @@ export class BitacoraDashboardComponent implements OnInit {
   cargandoLista = signal(false);
   cargandoForm = signal(false);
   error = signal<string | null>(null);
+  success = signal<string | null>(null);
   logs = signal<ProjectLog[]>([]);
 
   readonly estados: BitacoraStatus[] = ['En progreso', 'Completado', 'Bloqueado'];
@@ -33,6 +34,15 @@ export class BitacoraDashboardComponent implements OnInit {
     status_tags: ['En progreso' as BitacoraStatus, [Validators.required]],
     author: ['', [Validators.required, Validators.maxLength(255)]],
   });
+
+  /** Archivo de portada seleccionado (aún no enviado). */
+  coverFile = signal<File | null>(null);
+  /** URL de la portada actual del avance (al editar). */
+  coverImageUrl = signal<string | null>(null);
+  /** Subiendo portada (para deshabilitar botones). */
+  subiendoPortada = signal(false);
+  /** URL de vista previa del archivo recién elegido (blob). */
+  previewBlobUrl = signal<string | null>(null);
 
   ngOnInit(): void {
     this.cargar();
@@ -66,10 +76,15 @@ export class BitacoraDashboardComponent implements OnInit {
       status_tags: log.status_tags,
       author: log.author,
     });
+    this.coverFile.set(null);
+    this.coverImageUrl.set(log.cover_image ?? null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   limpiarFormulario(): void {
+    const old = this.previewBlobUrl();
+    if (old) URL.revokeObjectURL(old);
+    this.previewBlobUrl.set(null);
     this.form.reset({
       id: null,
       title: '',
@@ -77,11 +92,20 @@ export class BitacoraDashboardComponent implements OnInit {
       status_tags: 'En progreso',
       author: '',
     });
+    this.coverFile.set(null);
+    this.coverImageUrl.set(null);
+  }
+
+  private mostrarExito(mensaje: string): void {
+    this.success.set(mensaje);
+    this.error.set(null);
+    setTimeout(() => this.success.set(null), 4000);
   }
 
   enviar(): void {
     if (this.form.invalid || this.cargandoForm()) return;
     this.error.set(null);
+    this.success.set(null);
     this.cargandoForm.set(true);
 
     const value = this.form.value;
@@ -98,10 +122,34 @@ export class BitacoraDashboardComponent implements OnInit {
       : this.bitacora.create(payload);
 
     obs.subscribe({
-      next: () => {
-        this.cargandoForm.set(false);
-        this.limpiarFormulario();
-        this.cargar();
+      next: (dato) => {
+        const id = dato.id;
+        const file = this.coverFile();
+        if (file) {
+          this.subiendoPortada.set(true);
+          this.bitacora.uploadCover(id, file).subscribe({
+            next: () => {
+              this.subiendoPortada.set(false);
+              this.cargandoForm.set(false);
+              this.coverFile.set(null);
+              this.mostrarExito('Avance guardado correctamente con imagen de portada.');
+              this.limpiarFormulario();
+              this.cargar();
+            },
+            error: (err) => {
+              this.subiendoPortada.set(false);
+              this.cargandoForm.set(false);
+              this.error.set(
+                err?.error?.mensaje || err?.message || 'Error al subir la imagen de portada.'
+              );
+            },
+          });
+        } else {
+          this.cargandoForm.set(false);
+          this.mostrarExito(this.editando ? 'Avance actualizado correctamente.' : 'Avance guardado correctamente.');
+          this.limpiarFormulario();
+          this.cargar();
+        }
       },
       error: (err) => {
         this.cargandoForm.set(false);
@@ -116,10 +164,13 @@ export class BitacoraDashboardComponent implements OnInit {
     if (!confirm(`¿Eliminar el avance "${log.title}"?`)) {
       return;
     }
+    this.error.set(null);
+    this.success.set(null);
     this.cargandoForm.set(true);
     this.bitacora.delete(log.id).subscribe({
       next: () => {
         this.cargandoForm.set(false);
+        this.mostrarExito('Avance eliminado correctamente.');
         this.limpiarFormulario();
         this.cargar();
       },
@@ -140,6 +191,43 @@ export class BitacoraDashboardComponent implements OnInit {
   cambiarFiltro(estado: BitacoraStatus | ''): void {
     this.filtroEstado.set(estado);
     this.cargar();
+  }
+
+  onCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const old = this.previewBlobUrl();
+    if (old) URL.revokeObjectURL(old);
+    this.previewBlobUrl.set(file ? URL.createObjectURL(file) : null);
+    this.coverFile.set(file ?? null);
+    input.value = '';
+  }
+
+  quitarPortada(): void {
+    if (this.subiendoPortada()) return;
+    const id = this.form.get('id')?.value as number | null;
+    if (this.coverFile()) {
+      const old = this.previewBlobUrl();
+      if (old) URL.revokeObjectURL(old);
+      this.previewBlobUrl.set(null);
+      this.coverFile.set(null);
+      return;
+    }
+    if (!id || !this.coverImageUrl()) return;
+    this.subiendoPortada.set(true);
+    this.bitacora.removeCover(id).subscribe({
+      next: () => {
+        this.subiendoPortada.set(false);
+        this.coverImageUrl.set(null);
+        this.cargar();
+      },
+      error: (err) => {
+        this.subiendoPortada.set(false);
+        this.error.set(
+          err?.error?.mensaje || err?.message || 'Error al quitar la imagen de portada.'
+        );
+      },
+    });
   }
 
   abrirConfirmacionLogout(): void {

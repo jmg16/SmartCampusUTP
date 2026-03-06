@@ -123,5 +123,25 @@ export class BitacoraService {
       })
       .pipe(map(() => void 0));
   }
+
+  /** Subir imagen de portada para un avance (JPEG, PNG, GIF, WebP; máx. 5 MB). */
+  uploadCover(logId: number, file: File): Observable<ProjectLog> {
+    const formData = new FormData();
+    formData.append('cover', file);
+    return this.http
+      .put<{ ok: boolean; dato: ProjectLog }>(`/api/bitacora/logs/${logId}/cover`, formData, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((resp) => resp.dato));
+  }
+
+  /** Quitar la imagen de portada de un avance. */
+  removeCover(logId: number): Observable<ProjectLog> {
+    return this.http
+      .delete<{ ok: boolean; dato: ProjectLog }>(`/api/bitacora/logs/${logId}/cover`, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((resp) => resp.dato));
+  }
 }
 

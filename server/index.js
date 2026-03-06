@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 
 // Cargar .env.bitacora si existe (para que varios admins funcionen aunque PM2 no herede las variables)
 const envBitacoraPath = path.join(__dirname, '.env.bitacora');
@@ -33,8 +34,33 @@ if (fs.existsSync(envBitacoraPath)) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Carpeta para imágenes de portada de bitácora (crear si no existe)
+const UPLOADS_BITACORA_DIR = path.join(__dirname, 'uploads', 'bitacora');
+if (!fs.existsSync(UPLOADS_BITACORA_DIR)) {
+  fs.mkdirSync(UPLOADS_BITACORA_DIR, { recursive: true });
+}
+
+const storageBitacora = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_BITACORA_DIR),
+  filename: (req, file, cb) => {
+    const ext = (path.extname(file.originalname) || '.jpg').toLowerCase().replace(/[^a-z]/g, '') || 'jpg';
+    const safe = `${req.params.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    cb(null, safe);
+  },
+});
+const uploadBitacora = multer({
+  storage: storageBitacora,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype);
+    cb(null, ok);
+  },
+});
+
 app.use(cors({ origin: true }));
 app.use(express.json());
+// Servir imágenes de portada de bitácora (URL pública para el front)
+app.use('/api/bitacora/uploads', express.static(UPLOADS_BITACORA_DIR));
 
 // Pool principal (landing / interesados)
 const pool = new Pool({
@@ -197,7 +223,7 @@ app.get('/api/bitacora/logs', async (req, res) => {
 
     const result = await bitacoraPool.query(
       `
-      SELECT id, title, description, status_tags, author, created_at
+      SELECT id, title, description, status_tags, author, created_at, cover_image
       FROM project_logs
       ${where}
       ORDER BY created_at DESC
@@ -233,7 +259,7 @@ app.get('/api/bitacora/logs/:id', async (req, res) => {
   try {
     const result = await bitacoraPool.query(
       `
-      SELECT id, title, description, status_tags, author, created_at
+      SELECT id, title, description, status_tags, author, created_at, cover_image
       FROM project_logs
       WHERE id = $1
     `,
@@ -282,7 +308,7 @@ app.post('/api/bitacora/logs', requireBitacoraAuth, async (req, res) => {
       `
       INSERT INTO project_logs (title, description, status_tags, author)
       VALUES ($1, $2, $3, $4)
-      RETURNING id, title, description, status_tags, author, created_at
+      RETURNING id, title, description, status_tags, author, created_at, cover_image
     `,
       [String(title).trim(), String(description).trim(), status_tags, String(author).trim()]
     );
@@ -335,7 +361,7 @@ app.put('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
           status_tags = $3,
           author = $4
       WHERE id = $5
-      RETURNING id, title, description, status_tags, author, created_at
+      RETURNING id, title, description, status_tags, author, created_at, cover_image
     `,
       [String(title).trim(), String(description).trim(), status_tags, String(author).trim(), id]
     );
@@ -360,6 +386,98 @@ app.put('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
   }
 });
 
+// Subir o reemplazar imagen de portada (protegido)
+app.put(
+  '/api/bitacora/logs/:id/cover',
+  requireBitacoraAuth,
+  (req, res, next) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+    }
+    next();
+  },
+  uploadBitacora.single('cover'),
+  async (req, res) => {
+    if (!ensureBitacoraConfig(res)) return;
+    if (!req.file) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'Debes enviar un archivo de imagen (campo "cover"). Formatos: JPEG, PNG, GIF, WebP. Máx. 5 MB.',
+      });
+    }
+    const id = Number.parseInt(req.params.id, 10);
+    const relativePath = `/api/bitacora/uploads/${req.file.filename}`;
+
+    try {
+      const prev = await bitacoraPool.query(
+        'SELECT cover_image FROM project_logs WHERE id = $1',
+        [id]
+      );
+      if (prev.rows.length === 0) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(404).json({ ok: false, mensaje: 'Registro no encontrado.' });
+      }
+      const oldPath = prev.rows[0].cover_image;
+      if (oldPath) {
+        const oldFile = path.join(UPLOADS_BITACORA_DIR, path.basename(oldPath));
+        if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
+      }
+      await bitacoraPool.query(
+        'UPDATE project_logs SET cover_image = $1 WHERE id = $2',
+        [relativePath, id]
+      );
+      const result = await bitacoraPool.query(
+        'SELECT id, title, description, status_tags, author, created_at, cover_image FROM project_logs WHERE id = $1',
+        [id]
+      );
+      res.json({ ok: true, dato: result.rows[0] });
+    } catch (err) {
+      fs.unlink(req.file.path, () => {});
+      console.error('Error en PUT /api/bitacora/logs/:id/cover:', err);
+      res.status(500).json({
+        ok: false,
+        mensaje: 'Error al guardar la imagen de portada.',
+      });
+    }
+  }
+);
+
+// Quitar imagen de portada (protegido)
+app.delete('/api/bitacora/logs/:id/cover', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      'SELECT cover_image FROM project_logs WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Registro no encontrado.' });
+    }
+    const cover = result.rows[0].cover_image;
+    if (cover) {
+      const filePath = path.join(UPLOADS_BITACORA_DIR, path.basename(cover));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      await bitacoraPool.query('UPDATE project_logs SET cover_image = NULL WHERE id = $1', [id]);
+    }
+    const updated = await bitacoraPool.query(
+      'SELECT id, title, description, status_tags, author, created_at, cover_image FROM project_logs WHERE id = $1',
+      [id]
+    );
+    res.json({ ok: true, dato: updated.rows[0] });
+  } catch (err) {
+    console.error('Error en DELETE /api/bitacora/logs/:id/cover:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al quitar la imagen de portada.',
+    });
+  }
+});
+
 // Eliminar un log (protegido)
 app.delete('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
   if (!ensureBitacoraConfig(res)) return;
@@ -373,6 +491,11 @@ app.delete('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
   }
 
   try {
+    const row = await bitacoraPool.query('SELECT cover_image FROM project_logs WHERE id = $1', [id]);
+    if (row.rows.length > 0 && row.rows[0].cover_image) {
+      const filePath = path.join(UPLOADS_BITACORA_DIR, path.basename(row.rows[0].cover_image));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
     const result = await bitacoraPool.query('DELETE FROM project_logs WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({

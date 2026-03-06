@@ -17,6 +17,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'bitacora/avance/:id',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/bitacora-post-detail/bitacora-post-detail.component').then(
+        (m) => m.BitacoraPostDetailComponent
+      ),
+  },
+  {
     path: 'admin',
     redirectTo: 'admin/login',
     pathMatch: 'full',
