@@ -1,0 +1,64 @@
+<div class="min-h-screen flex flex-col">
+  <app-navbar />
+  <main class="flex-1">
+    <!-- Cabecera -->
+    <section class="relative pt-24 pb-12 overflow-hidden">
+      <div
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
+        style="background-image: url('assets/1-Smart-City-Principal.jpg');"
+        aria-hidden="true"
+      ></div>
+      <div class="absolute inset-0 bg-utp-blue/80" aria-hidden="true"></div>
+      <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+          Gemelo 3D
+        </h1>
+        <p class="mt-4 text-lg text-blue-100 max-w-2xl mx-auto">
+          Modelos BIM del campus UTP Chiriquí. Explora las vistas interactivas de Speckle.
+        </p>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent"></div>
+    </section>
+
+    <!-- Modelos embebidos -->
+    <section class="py-12 md:py-16 bg-gray-50">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-amber-800 text-sm">
+          <strong>Nota:</strong> Los modelos se cargan desde el servidor BIM (bimch.utp.ac.pa). Si ves recuadros en blanco o «Connection Failed», el servidor no está accesible desde tu red (prueba desde la red UTP o VPN) o puede estar detenido. Los enlaces debajo permiten abrir el modelo en una pestaña nueva.
+        </div>
+        <!-- Facultad de Civil -->
+        <div>
+          <h2 class="text-2xl font-bold text-utp-blue mb-4">Facultad de Civil</h2>
+          <div class="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+            <iframe
+              title="Speckle - Facultad de Civil"
+              [src]="facultadCivilUrl"
+              width="100%"
+              height="400"
+              class="block w-full min-h-[400px]"
+              frameborder="0"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </div>
+
+        <!-- Cafetín -->
+        <div>
+          <h2 class="text-2xl font-bold text-utp-blue mb-4">Cafetín</h2>
+          <div class="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+            <iframe
+              title="Speckle - Cafetín"
+              [src]="cafetinUrl"
+              width="100%"
+              height="400"
+              class="block w-full min-h-[400px]"
+              frameborder="0"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <app-footer />
+</div>

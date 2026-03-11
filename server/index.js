@@ -57,6 +57,23 @@ const uploadBitacora = multer({
   },
 });
 
+// URL base pública (ej. https://smartcampus.utp.ac.pa) para que las imágenes de portada
+// se carguen igual aunque el usuario entre por IP u otro host
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+
+function withAbsoluteCover(log) {
+  if (!log || !log.cover_image) return log;
+  const cover = log.cover_image;
+  if (PUBLIC_BASE_URL && typeof cover === 'string' && cover.startsWith('/')) {
+    return { ...log, cover_image: PUBLIC_BASE_URL + cover };
+  }
+  return log;
+}
+
+function withAbsoluteCoverList(rows) {
+  return Array.isArray(rows) ? rows.map(withAbsoluteCover) : rows;
+}
+
 app.use(cors({ origin: true }));
 app.use(express.json());
 // Servir imágenes de portada de bitácora (URL pública para el front)
@@ -234,7 +251,7 @@ app.get('/api/bitacora/logs', async (req, res) => {
 
     res.json({
       ok: true,
-      datos: result.rows,
+      datos: withAbsoluteCoverList(result.rows),
     });
   } catch (err) {
     console.error('Error en GET /api/bitacora/logs:', err);
@@ -273,7 +290,7 @@ app.get('/api/bitacora/logs/:id', async (req, res) => {
     }
     res.json({
       ok: true,
-      dato: result.rows[0],
+      dato: withAbsoluteCover(result.rows[0]),
     });
   } catch (err) {
     console.error('Error en GET /api/bitacora/logs/:id:', err);
@@ -314,7 +331,7 @@ app.post('/api/bitacora/logs', requireBitacoraAuth, async (req, res) => {
     );
     res.status(201).json({
       ok: true,
-      dato: result.rows[0],
+      dato: withAbsoluteCover(result.rows[0]),
     });
   } catch (err) {
     console.error('Error en POST /api/bitacora/logs:', err);
@@ -375,7 +392,7 @@ app.put('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
 
     res.json({
       ok: true,
-      dato: result.rows[0],
+      dato: withAbsoluteCover(result.rows[0]),
     });
   } catch (err) {
     console.error('Error en PUT /api/bitacora/logs/:id:', err);
@@ -431,7 +448,7 @@ app.put(
         'SELECT id, title, description, status_tags, author, created_at, cover_image FROM project_logs WHERE id = $1',
         [id]
       );
-      res.json({ ok: true, dato: result.rows[0] });
+      res.json({ ok: true, dato: withAbsoluteCover(result.rows[0]) });
     } catch (err) {
       fs.unlink(req.file.path, () => {});
       console.error('Error en PUT /api/bitacora/logs/:id/cover:', err);
@@ -468,7 +485,7 @@ app.delete('/api/bitacora/logs/:id/cover', requireBitacoraAuth, async (req, res)
       'SELECT id, title, description, status_tags, author, created_at, cover_image FROM project_logs WHERE id = $1',
       [id]
     );
-    res.json({ ok: true, dato: updated.rows[0] });
+    res.json({ ok: true, dato: withAbsoluteCover(updated.rows[0]) });
   } catch (err) {
     console.error('Error en DELETE /api/bitacora/logs/:id/cover:', err);
     res.status(500).json({

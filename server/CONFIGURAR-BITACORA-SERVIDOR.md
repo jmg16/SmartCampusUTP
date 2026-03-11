@@ -47,6 +47,7 @@ La API necesita estas variables (además de `DATABASE_URL` para la landing):
 | `BITACORA_ADMIN_USER` | Usuario para el login del dashboard (primer admin) | `jmartinez` |
 | `BITACORA_ADMIN_PASSWORD` | Contraseña del primer admin | La que elijas |
 | `BITACORA_ADMIN_CREDENTIALS` | Opcional. Más admins: `usuario2:contraseña2,usuario3:contraseña3` | `admin:MiPass123,maria:OtraPass456` |
+| `PUBLIC_BASE_URL` | Opcional. URL pública del sitio (sin barra final). Si algunos admins entran por IP y las imágenes de portada no se ven, pon aquí la URL canónica (ej. `https://smartcampus.utp.ac.pa`) | `https://smartcampus.utp.ac.pa` |
 
 ---
 
@@ -67,6 +68,8 @@ BITACORA_DATABASE_URL=postgres://bitacora_admin:TU_PASSWORD@192.168.10.11:5432/b
 BITACORA_JWT_SECRET=pon_aqui_una_clave_larga_y_aleatoria
 BITACORA_ADMIN_USER=jmartinez
 BITACORA_ADMIN_PASSWORD=tu_contraseña_admin
+# Opcional: si las imágenes de portada no se ven para algunos usuarios (ej. cuando entran por IP), descomenta y pon la URL pública:
+# PUBLIC_BASE_URL=https://smartcampus.utp.ac.pa
 ```
 
 Guarda (Ctrl+O, Enter, Ctrl+X). Luego arranca/reinicia la API cargando ese archivo:

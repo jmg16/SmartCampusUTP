@@ -24,6 +24,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'gemelo-3d',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/gemelo-3d/gemelo-3d.component').then(
+        (m) => m.Gemelo3dComponent
+      ),
+  },
+  {
     path: 'admin',
     redirectTo: 'admin/login',
     pathMatch: 'full',

@@ -43,6 +43,11 @@ echo ""
 echo "==> API: instalar deps y reiniciar PM2 (smartcampus-api)"
 cd "$REPO_DIR/server"
 npm install --production
+# Migración opcional: columna cover_image (solo si aún no la tienes)
+if [[ -f scripts/alter-bitacora-add-cover.sql ]]; then
+  echo "    Si la BD de bitácora no tiene la columna cover_image, ejecuta una vez:"
+  echo "    PGPASSWORD='...' psql -h 192.168.10.11 -p 5432 -U bitacora_admin -d bitacora_db -f $REPO_DIR/server/scripts/alter-bitacora-add-cover.sql"
+fi
 # Cargar .env.bitacora para que PM2 herede BITACORA_* (varios admins, JWT, BD)
 if [[ -f .env.bitacora ]]; then
   set -a

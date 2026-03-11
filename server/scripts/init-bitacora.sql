@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS project_logs (
   description  TEXT NOT NULL,
   status_tags  VARCHAR(100) NOT NULL, -- Ej: 'En progreso', 'Completado', 'Bloqueado'
   author       VARCHAR(255) NOT NULL,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  cover_image  VARCHAR(512) DEFAULT NULL
 );
 
 -- Índice para ordenar y filtrar por fecha de creación
