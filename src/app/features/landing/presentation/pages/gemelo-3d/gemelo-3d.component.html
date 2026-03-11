@@ -20,39 +20,121 @@
       <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent"></div>
     </section>
 
-    <!-- Modelos embebidos -->
+    <!-- Modelos como galería -->
     <section class="py-12 md:py-16 bg-gray-50">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <!-- Facultad de Civil -->
-        <div>
-          <h2 class="text-2xl font-bold text-utp-blue mb-4">Facultad de Civil</h2>
-          <div class="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
-            <iframe
-              title="Speckle - Facultad de Civil"
-              [src]="facultadCivilUrl"
-              width="100%"
-              height="400"
-              class="block w-full min-h-[400px]"
-              frameborder="0"
-              loading="lazy"
-            ></iframe>
-          </div>
-        </div>
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <header class="mb-10 text-center md:text-left">
+          <h2 class="text-2xl md:text-3xl font-bold text-utp-blue mb-3">Explora los gemelos digitales</h2>
+          <p class="text-gray-600 max-w-2xl md:max-w-3xl mx-auto md:mx-0">
+            Visualiza los modelos 3D del campus como si fuese una galería digital. Haz clic en cada espacio para
+            abrir el recorrido interactivo en Speckle.
+          </p>
+        </header>
 
-        <!-- Cafetín -->
-        <div>
-          <h2 class="text-2xl font-bold text-utp-blue mb-4">Cafetín</h2>
-          <div class="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
-            <iframe
-              title="Speckle - Cafetín"
-              [src]="cafetinUrl"
-              width="100%"
-              height="400"
-              class="block w-full min-h-[400px]"
-              frameborder="0"
-              loading="lazy"
-            ></iframe>
+        <div class="grid gap-8 md:grid-cols-2">
+          @for (model of models; track model.id) {
+            <article
+              class="group rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:border-utp-blue/40 transition-all cursor-pointer"
+              (click)="selectModel(model)"
+              tabindex="0"
+              role="button"
+            >
+              <div
+                class="relative h-44 sm:h-52 bg-gradient-to-br from-utp-blue via-sky-500 to-indigo-600 flex items-center justify-center text-white"
+              >
+                <div class="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,_white,_transparent_60%)]"></div>
+                <div class="relative flex flex-col items-center gap-2">
+                  <div
+                    class="w-12 h-12 rounded-full bg-white/15 border border-white/40 flex items-center justify-center shadow-sm"
+                  >
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 3l7 4v6c0 3.314-2.686 6-6 6s-6-2.686-6-6V7l5-3m1 0v7m0 0l3 3m-3-3l-3 3"
+                      />
+                    </svg>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-xs uppercase tracking-[0.25em] text-blue-100">Modelo 3D</p>
+                    <h3 class="text-lg sm:text-xl font-semibold tracking-tight">{{ model.title }}</h3>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-5 flex-1 flex flex-col gap-3">
+                <p class="text-xs font-semibold tracking-wide uppercase text-utp-blue/80">
+                  {{ model.subtitle }}
+                </p>
+                <p class="text-sm text-gray-600 flex-1">
+                  {{ model.description }}
+                </p>
+                <div class="mt-2 flex items-center justify-between gap-3">
+                  <span class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  </span>
+                  <button
+                    type="button"
+                    (click)="selectModel(model)"
+                    class="inline-flex items-center gap-2 rounded-full bg-utp-blue px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-utp-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-utp-blue"
+                  >
+                    Ver aquí
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M13.5 4.5H19.5M19.5 4.5V10.5M19.5 4.5L12 12M11 5.5H7.75C6.23122 5.5 5.47183 5.5 4.90842 5.79549C4.40973 6.0573 4.0573 6.40973 3.79549 6.90842C3.5 7.47183 3.5 8.23122 3.5 9.75V16.25C3.5 17.7688 3.5 18.5282 3.79549 19.0916C4.0573 19.5903 4.40973 19.9427 4.90842 20.2045C5.47183 20.5 6.23122 20.5 7.75 20.5H14.25C15.7688 20.5 16.5282 20.5 17.0916 20.2045C17.5903 19.9427 17.9427 19.5903 18.2045 19.0916C18.5 18.5282 18.5 17.7688 18.5 16.25V13"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+    <!-- Visor embebido -->
+    <section class="relative pb-20 pt-10 border-t border-gray-200 overflow-hidden" *ngIf="selected && selectedUrl">
+      <div
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
+        style="background-image: url('assets/sede_chiriqui.jpg');"
+        aria-hidden="true"
+      ></div>
+      <div class="absolute inset-0 bg-utp-blue/80 backdrop-blur-[0.5px]" aria-hidden="true"></div>
+
+      <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-2">
+        <div class="mb-4 flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+          <div class="flex-1">
+            <p class="text-xs font-semibold tracking-wide uppercase text-blue-100">Modelo seleccionado</p>
+            <h3 class="text-xl md:text-2xl font-bold text-white">
+              {{ selected.title }}
+            </h3>
+            <p class="text-sm text-blue-100">
+              {{ selected.subtitle }} · {{ selected.description }}
+            </p>
           </div>
+          <button
+            type="button"
+            (click)="clearSelection()"
+            class="self-start md:self-auto inline-flex items-center justify-center rounded-full border border-white/60 text-xs font-medium text-white px-3 py-1 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-utp-blue focus-visible:ring-white"
+            aria-label="Cerrar visor de modelo 3D"
+          >
+            ✕ Cerrar
+          </button>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-white/60 bg-black/80 shadow-xl">
+          <iframe
+            title="Visor gemelo digital"
+            [src]="selectedUrl"
+            width="100%"
+            height="520"
+            class="block w-full min-h-[420px]"
+            frameborder="0"
+            loading="lazy"
+          ></iframe>
         </div>
       </div>
     </section>

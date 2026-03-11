@@ -4,10 +4,13 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/footer/footer.component';
 
-const FACULTAD_CIVIL_EMBED =
-  'https://bimch.utp.ac.pa/projects/18fae223d7/models/04fb93c3e1#embed=%7B%22isEnabled%22%3Atrue%7D';
-const CAFETIN_EMBED =
-  'https://bimch.utp.ac.pa/projects/18fae223d7/models/085e61af29#embed=%7B%22isEnabled%22%3Atrue%7D';
+interface TwinModel {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  url: string;
+}
 
 @Component({
   selector: 'app-gemelo-3d',
@@ -17,11 +20,37 @@ const CAFETIN_EMBED =
   styleUrl: './gemelo-3d.component.css',
 })
 export class Gemelo3dComponent {
-  facultadCivilUrl: SafeResourceUrl;
-  cafetinUrl: SafeResourceUrl;
+  models: TwinModel[] = [
+    {
+      id: 'civil',
+      title: 'Facultad de Civil',
+      subtitle: 'Edificio académico',
+      description:
+        'Recorrido digital del edificio de la Facultad de Ingeniería Civil del campus UTP Chiriquí.',
+      url: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/04fb93c3e1#embed=%7B%22isEnabled%22%3Atrue%7D',
+    },
+    {
+      id: 'cafetin',
+      title: 'Cafetín',
+      subtitle: 'Servicios estudiantiles',
+      description:
+        'Vista 3D del cafetín del campus, pensada para explorar flujos de personas y puntos de servicio.',
+      url: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/085e61af29#embed=%7B%22isEnabled%22%3Atrue%7D',
+    },
+  ];
 
-  constructor(private sanitizer: DomSanitizer) {
-    this.facultadCivilUrl = this.sanitizer.bypassSecurityTrustResourceUrl(FACULTAD_CIVIL_EMBED);
-    this.cafetinUrl = this.sanitizer.bypassSecurityTrustResourceUrl(CAFETIN_EMBED);
+  selected: TwinModel | null = null;
+  selectedUrl: SafeResourceUrl | null = null;
+
+  constructor(private sanitizer: DomSanitizer) {}
+
+  selectModel(model: TwinModel): void {
+    this.selected = model;
+    this.selectedUrl = this.sanitizer.bypassSecurityTrustResourceUrl(model.url);
+  }
+
+  clearSelection(): void {
+    this.selected = null;
+    this.selectedUrl = null;
   }
 }
