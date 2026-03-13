@@ -23,16 +23,62 @@
     <!-- Modelos como galería -->
     <section class="py-12 md:py-16 bg-gray-50">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header class="mb-10 text-center md:text-left">
-          <h2 class="text-2xl md:text-3xl font-bold text-utp-blue mb-3">Explora los gemelos digitales</h2>
-          <p class="text-gray-600 max-w-2xl md:max-w-3xl mx-auto md:mx-0">
-            Visualiza los modelos 3D del campus como si fuese una galería digital. Haz clic en cada espacio para
-            abrir el recorrido interactivo en Speckle.
-          </p>
+        <header class="mb-8 md:mb-10 text-center md:text-left space-y-4">
+          <div>
+            <h2 class="text-2xl md:text-3xl font-bold text-utp-blue mb-3">Explora los gemelos digitales</h2>
+            <p class="text-gray-600 max-w-2xl md:max-w-3xl mx-auto md:mx-0">
+              Visualiza los modelos 3D del campus como si fuese una galería digital. Haz clic en cada espacio para
+              abrir el recorrido interactivo en Speckle.
+            </p>
+          </div>
+
+          <!-- Barra de búsqueda con autocompletado -->
+          <div class="w-full mx-auto md:mx-0 relative">
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-400"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-4.35-4.35M17 10A7 7 0 103 10a7 7 0 0014 0z"
+                  />
+                </svg>
+              </span>
+              <input
+                type="search"
+                [value]="searchTerm"
+                (input)="onSearchChange($any($event.target).value)"
+                placeholder="Buscar por nombre, facultad o descripción..."
+                class="w-full rounded-full border border-gray-200 bg-white pl-9 pr-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none"
+              />
+            </div>
+
+            <!-- Sugerencias -->
+            <ul
+              *ngIf="suggestions.length"
+              class="absolute z-10 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden text-left"
+            >
+              @for (s of suggestions; track s.id) {
+                <li>
+                  <button
+                    type="button"
+                    (click)="selectModel(s)"
+                    class="w-full px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex flex-col items-start"
+                  >
+                    <span class="font-medium">{{ s.title }}</span>
+                    <span class="text-xs text-gray-500">{{ s.subtitle }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
         </header>
 
         <div class="grid gap-8 md:grid-cols-2">
-          @for (model of models; track model.id) {
+          @for (model of filteredModels; track model.id) {
             <article
               class="group rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:border-utp-blue/40 transition-all cursor-pointer"
               (click)="selectModel(model)"

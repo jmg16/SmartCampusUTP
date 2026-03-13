@@ -79,10 +79,36 @@ export class Gemelo3dComponent {
     },
   ];
 
+  searchTerm = '';
   selected: TwinModel | null = null;
   selectedUrl: SafeResourceUrl | null = null;
 
   constructor(private sanitizer: DomSanitizer) {}
+
+  get filteredModels(): TwinModel[] {
+    const q = this.normalize(this.searchTerm);
+    if (!q) return this.models;
+    return this.models.filter((m) => {
+      const haystack = [
+        this.normalize(m.title),
+        this.normalize(m.subtitle),
+        this.normalize(m.description),
+      ].join(' ');
+      return haystack.includes(q);
+    });
+  }
+
+  get suggestions(): TwinModel[] {
+    const q = this.normalize(this.searchTerm);
+    if (!q) return [];
+    return this.models
+      .filter((m) => this.normalize(m.title).includes(q) || this.normalize(m.subtitle).includes(q))
+      .slice(0, 5);
+  }
+
+  onSearchChange(value: string): void {
+    this.searchTerm = value;
+  }
 
   selectModel(model: TwinModel): void {
     this.selected = model;
@@ -96,5 +122,13 @@ export class Gemelo3dComponent {
   clearSelection(): void {
     this.selected = null;
     this.selectedUrl = null;
+  }
+
+  private normalize(value: string): string {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
   }
 }
