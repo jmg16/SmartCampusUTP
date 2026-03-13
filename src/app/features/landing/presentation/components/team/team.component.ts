@@ -21,13 +21,13 @@ export class TeamComponent {
       nombre: 'Investigador a Tiempo Completo',
       cargo: 'Líder e infraestructura',
       descripcion: 'Responsable de la dirección del proyecto y del diseño de la infraestructura tecnológica del Smart Campus.',
-      imagenUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=leader',
+      imagenUrl: 'assets/WhatsApp Image 2026-03-13 at 09.48.39.jpeg',
     },
     {
       nombre: 'Javier Martínez',
       cargo: 'Desarrollador de Software',
       descripcion: 'Desarrollo de aplicaciones y sistemas que integran IoT y la plataforma del campus inteligente.',
-      imagenUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=javier',
+      imagenUrl: 'assets/Big.PNG',
     },
   ];
 }
