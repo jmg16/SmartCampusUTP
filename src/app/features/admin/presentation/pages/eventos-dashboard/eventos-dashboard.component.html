@@ -107,6 +107,64 @@
               />
             </div>
 
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="event_images">Imágenes del evento (1 a 5)</label>
+              <p class="text-xs text-gray-500 mb-2">Puedes seleccionar de 1 a 5 imágenes. Se mostrarán en la página pública del evento.</p>
+              <input
+                id="event_images"
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                multiple
+                (change)="onImagesSelected($event)"
+                class="block w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-utp-blue file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-utp-blue-dark file:cursor-pointer"
+              />
+
+              @if (previewImagenes().length) {
+                <div class="mt-3">
+                  <div class="flex items-center justify-between gap-3 mb-2">
+                    <p class="text-xs text-gray-600">Vista previa (seleccionadas): {{ previewImagenes().length }}</p>
+                    <button
+                      type="button"
+                      (click)="limpiarSeleccionImgenes()"
+                      class="text-xs text-red-600 hover:text-red-700 underline underline-offset-4"
+                    >
+                      Quitar selección
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    @for (img of previewImagenes(); track $index) {
+                      @if ($index === 0) {
+                        <div class="sm:col-span-2 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                          <img [src]="img" alt="Vista previa imagen del evento" class="w-full h-44 object-cover" />
+                        </div>
+                      } @else {
+                        <div class="rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                          <img [src]="img" alt="Vista previa imagen del evento" class="w-full h-28 object-cover" />
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+              } @else if (imagenesActuales().length) {
+                <div class="mt-3">
+                  <p class="text-xs text-gray-600 mb-2">Imágenes actuales: {{ imagenesActuales().length }}</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    @for (img of imagenesActuales(); track $index) {
+                      @if ($index === 0) {
+                        <div class="sm:col-span-2 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                          <img [src]="img" alt="Imagen del evento" class="w-full h-44 object-cover" />
+                        </div>
+                      } @else {
+                        <div class="rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                          <img [src]="img" alt="Imagen del evento" class="w-full h-28 object-cover" />
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
             <div class="flex items-center justify-between gap-3 pt-2">
               <button
                 type="button"

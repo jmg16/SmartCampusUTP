@@ -56,5 +56,16 @@ export class EventosService {
       })
       .pipe(map(() => void 0));
   }
+
+  /** Reemplaza las imágenes del evento (campo 'images', 1 a 5). */
+  replaceImages(eventId: number, files: File[]): Observable<void> {
+    const form = new FormData();
+    for (const f of files) form.append('images', f);
+    return this.http
+      .put<{ ok: boolean; mensaje?: string }>(`/api/eventos/${eventId}/images`, form, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map(() => void 0));
+  }
 }
 

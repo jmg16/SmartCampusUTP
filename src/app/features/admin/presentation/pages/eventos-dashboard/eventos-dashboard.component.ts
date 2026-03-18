@@ -25,6 +25,14 @@ export class EventosDashboardComponent implements OnInit {
   datos = signal<EventoPost[]>([]);
   mostrarConfirmacionLogout = signal(false);
 
+  /** Imágenes actuales del evento seleccionado (vienen del backend). */
+  imagenesActuales = signal<string[]>([]);
+  /** Imágenes nuevas elegidas por el admin (File + previews). */
+  imagenesNuevas = signal<File[]>([]);
+  previewImagenes = signal<string[]>([]);
+
+  readonly MAX_IMAGENES = 5;
+
   form = this.fb.group({
     id: [null as number | null],
     title: ['', [Validators.required, Validators.maxLength(255)]],
@@ -65,6 +73,12 @@ export class EventosDashboardComponent implements OnInit {
       location: evento.location,
       author: evento.author,
     });
+    this.imagenesActuales.set(evento.images ?? []);
+    this.imagenesNuevas.set([]);
+    // Revoke de previews previas (si existían)
+    const prev = this.previewImagenes();
+    for (const u of prev) URL.revokeObjectURL(u);
+    this.previewImagenes.set([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -77,6 +91,47 @@ export class EventosDashboardComponent implements OnInit {
       location: '',
       author: '',
     });
+    const prev = this.previewImagenes();
+    for (const u of prev) URL.revokeObjectURL(u);
+    this.previewImagenes.set([]);
+    this.imagenesNuevas.set([]);
+    this.imagenesActuales.set([]);
+  }
+
+  onImagesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+
+    // Limpiar previews previas
+    const prev = this.previewImagenes();
+    for (const u of prev) URL.revokeObjectURL(u);
+    this.previewImagenes.set([]);
+
+    if (!files.length) {
+      this.imagenesNuevas.set([]);
+      this.imagenesActuales.set([]);
+      input.value = '';
+      return;
+    }
+
+    if (files.length > this.MAX_IMAGENES) {
+      this.error.set(`Puedes subir máximo ${this.MAX_IMAGENES} imágenes.`);
+      this.success.set(null);
+      this.imagenesNuevas.set(files.slice(0, this.MAX_IMAGENES));
+    } else {
+      this.imagenesNuevas.set(files);
+    }
+
+    const toUse = (files.length > this.MAX_IMAGENES ? files.slice(0, this.MAX_IMAGENES) : files);
+    this.previewImagenes.set(toUse.map((f) => URL.createObjectURL(f)));
+    input.value = '';
+  }
+
+  limpiarSeleccionImgenes(): void {
+    const prev = this.previewImagenes();
+    for (const u of prev) URL.revokeObjectURL(u);
+    this.previewImagenes.set([]);
+    this.imagenesNuevas.set([]);
   }
 
   enviar(): void {
@@ -106,13 +161,32 @@ export class EventosDashboardComponent implements OnInit {
     const obs = id ? this.eventos.update(id, payload) : this.eventos.create(payload);
 
     obs.subscribe({
-      next: () => {
-        this.cargandoForm.set(false);
-        this.success.set(id ? 'Evento actualizado correctamente.' : 'Evento creado correctamente.');
-        this.error.set(null);
-        this.limpiarFormulario();
-        this.cargar();
-        setTimeout(() => this.success.set(null), 4000);
+      next: (dato) => {
+        const eventId = dato.id;
+        const files = this.imagenesNuevas();
+        if (files.length) {
+          this.eventos.replaceImages(eventId, files).subscribe({
+            next: () => {
+              this.cargandoForm.set(false);
+              this.success.set(id ? 'Evento actualizado con imágenes.' : 'Evento creado con imágenes.');
+              this.error.set(null);
+              this.limpiarFormulario();
+              this.cargar();
+              setTimeout(() => this.success.set(null), 4000);
+            },
+            error: (err) => {
+              this.cargandoForm.set(false);
+              this.error.set(err?.error?.mensaje || err?.message || 'Error al subir imágenes del evento.');
+            },
+          });
+        } else {
+          this.cargandoForm.set(false);
+          this.success.set(id ? 'Evento actualizado correctamente.' : 'Evento creado correctamente.');
+          this.error.set(null);
+          this.limpiarFormulario();
+          this.cargar();
+          setTimeout(() => this.success.set(null), 4000);
+        }
       },
       error: (err) => {
         this.cargandoForm.set(false);

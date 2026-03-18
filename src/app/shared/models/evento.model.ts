@@ -6,6 +6,7 @@ export interface EventoPost {
   location: string;
   author: string;
   created_at: string;
+  images?: string[];
 }
 
 export interface EventoListResponse {

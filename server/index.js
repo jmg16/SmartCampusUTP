@@ -40,6 +40,12 @@ if (!fs.existsSync(UPLOADS_BITACORA_DIR)) {
   fs.mkdirSync(UPLOADS_BITACORA_DIR, { recursive: true });
 }
 
+// Carpeta para imágenes de eventos (crear si no existe)
+const UPLOADS_EVENTOS_DIR = path.join(__dirname, 'uploads', 'eventos');
+if (!fs.existsSync(UPLOADS_EVENTOS_DIR)) {
+  fs.mkdirSync(UPLOADS_EVENTOS_DIR, { recursive: true });
+}
+
 const storageBitacora = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_BITACORA_DIR),
   filename: (req, file, cb) => {
@@ -61,6 +67,26 @@ const uploadBitacora = multer({
 // se carguen igual aunque el usuario entre por IP u otro host
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
+// --- Multer para imágenes de eventos (1 a 5 por evento) ---
+const storageEventos = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_EVENTOS_DIR),
+  filename: (_req, file, cb) => {
+    const ext =
+      (path.extname(file.originalname) || '.jpg').toLowerCase().replace(/[^a-z]/g, '') || 'jpg';
+    const safe = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    cb(null, safe);
+  },
+});
+
+const uploadEventos = multer({
+  storage: storageEventos,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype);
+    cb(null, ok);
+  },
+});
+
 function withAbsoluteCover(log) {
   if (!log || !log.cover_image) return log;
   const cover = log.cover_image;
@@ -74,10 +100,29 @@ function withAbsoluteCoverList(rows) {
   return Array.isArray(rows) ? rows.map(withAbsoluteCover) : rows;
 }
 
+function withAbsoluteEventImages(event) {
+  if (!event || !Array.isArray(event.images)) return event;
+  if (!PUBLIC_BASE_URL) return event;
+  return {
+    ...event,
+    images: event.images.map((img) => {
+      if (typeof img === 'string' && img.startsWith('/')) return PUBLIC_BASE_URL + img;
+      return img;
+    }),
+  };
+}
+
+function withAbsoluteEventImagesList(rows) {
+  return Array.isArray(rows) ? rows.map(withAbsoluteEventImages) : rows;
+}
+
 app.use(cors({ origin: true }));
 app.use(express.json());
 // Servir imágenes de portada de bitácora (URL pública para el front)
 app.use('/api/bitacora/uploads', express.static(UPLOADS_BITACORA_DIR));
+
+// Servir imágenes de eventos (URL pública para el front)
+app.use('/api/eventos/uploads', express.static(UPLOADS_EVENTOS_DIR));
 
 // Pool principal (landing / interesados)
 const pool = new Pool({
@@ -173,6 +218,25 @@ async function ensureEventosTable() {
       CREATE INDEX IF NOT EXISTS idx_project_events_event_date
       ON project_events (event_date DESC)
     `);
+
+    await bitacoraPool.query(`
+      CREATE TABLE IF NOT EXISTS project_event_images (
+        id          SERIAL PRIMARY KEY,
+        event_id    INTEGER NOT NULL REFERENCES project_events(id) ON DELETE CASCADE,
+        image_url  VARCHAR(512) NOT NULL,
+        sort_order  INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_project_event_images_event_id
+      ON project_event_images (event_id)
+    `);
+
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_project_event_images_sort
+      ON project_event_images (event_id, sort_order)
+    `);
   } catch (err) {
     console.error('[eventos] No se pudo asegurar la tabla project_events:', err.message);
   }
@@ -220,14 +284,29 @@ app.get('/api/eventos', async (req, res) => {
   try {
     const result = await bitacoraPool.query(
       `
-      SELECT id, title, description, event_date, location, author, created_at
-      FROM project_events
+      SELECT
+        e.id,
+        e.title,
+        e.description,
+        e.event_date,
+        e.location,
+        e.author,
+        e.created_at,
+        COALESCE(
+          (
+            SELECT array_agg(img.image_url ORDER BY img.sort_order)
+            FROM project_event_images img
+            WHERE img.event_id = e.id
+          ),
+          ARRAY[]::text[]
+        ) AS images
+      FROM project_events e
       ORDER BY event_date DESC
       LIMIT $1
     `,
       [limit]
     );
-    res.json({ ok: true, datos: result.rows });
+    res.json({ ok: true, datos: withAbsoluteEventImagesList(result.rows) });
   } catch (err) {
     console.error('Error en GET /api/eventos:', err);
     res.status(500).json({
@@ -249,9 +328,24 @@ app.get('/api/eventos/:id', async (req, res) => {
   try {
     const result = await bitacoraPool.query(
       `
-      SELECT id, title, description, event_date, location, author, created_at
-      FROM project_events
-      WHERE id = $1
+      SELECT
+        e.id,
+        e.title,
+        e.description,
+        e.event_date,
+        e.location,
+        e.author,
+        e.created_at,
+        COALESCE(
+          (
+            SELECT array_agg(img.image_url ORDER BY img.sort_order)
+            FROM project_event_images img
+            WHERE img.event_id = e.id
+          ),
+          ARRAY[]::text[]
+        ) AS images
+      FROM project_events e
+      WHERE e.id = $1
     `,
       [id]
     );
@@ -261,7 +355,7 @@ app.get('/api/eventos/:id', async (req, res) => {
         mensaje: 'Evento no encontrado.',
       });
     }
-    res.json({ ok: true, dato: result.rows[0] });
+    res.json({ ok: true, dato: withAbsoluteEventImages(result.rows[0]) });
   } catch (err) {
     console.error('Error en GET /api/eventos/:id:', err);
     res.status(500).json({
@@ -359,6 +453,21 @@ app.delete('/api/eventos/:id', requireBitacoraAuth, async (req, res) => {
     return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
   }
   try {
+    // Borrar archivos físicos asociados
+    const prev = await bitacoraPool.query(
+      'SELECT image_url FROM project_event_images WHERE event_id = $1 ORDER BY sort_order',
+      [id]
+    );
+    for (const row of prev.rows) {
+      const url = row.image_url;
+      if (typeof url === 'string') {
+        const filename = path.basename(url);
+        const filePath = path.join(UPLOADS_EVENTOS_DIR, filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
+
+    await bitacoraPool.query('DELETE FROM project_event_images WHERE event_id = $1', [id]);
     const result = await bitacoraPool.query('DELETE FROM project_events WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -372,6 +481,55 @@ app.delete('/api/eventos/:id', requireBitacoraAuth, async (req, res) => {
     res.status(500).json({
       ok: false,
       mensaje: 'Error al eliminar el evento.',
+    });
+  }
+});
+
+// Reemplazar imágenes del evento (1 a 5)
+app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('images', 5), async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  const files = req.files || [];
+  if (!files.length) {
+    return res.status(400).json({ ok: false, mensaje: 'Debes enviar al menos 1 imagen (campo \"images\").' });
+  }
+
+  try {
+    // Borrar imágenes previas (archivos y filas)
+    const prev = await bitacoraPool.query(
+      'SELECT image_url FROM project_event_images WHERE event_id = $1 ORDER BY sort_order',
+      [id]
+    );
+    for (const row of prev.rows) {
+      const url = row.image_url;
+      if (typeof url === 'string') {
+        const filename = path.basename(url);
+        const filePath = path.join(UPLOADS_EVENTOS_DIR, filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
+
+    await bitacoraPool.query('DELETE FROM project_event_images WHERE event_id = $1', [id]);
+
+    // Insertar nuevas filas
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const relativePath = `/api/eventos/uploads/${file.filename}`;
+      await bitacoraPool.query(
+        'INSERT INTO project_event_images (event_id, image_url, sort_order) VALUES ($1, $2, $3)',
+        [id, relativePath, i]
+      );
+    }
+
+    res.json({ ok: true, mensaje: 'Imágenes del evento actualizadas.' });
+  } catch (err) {
+    console.error('Error en PUT /api/eventos/:id/images:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al actualizar las imágenes del evento.',
     });
   }
 });

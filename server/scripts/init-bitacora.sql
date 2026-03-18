@@ -27,3 +27,17 @@ CREATE TABLE IF NOT EXISTS project_events (
 CREATE INDEX IF NOT EXISTS idx_project_events_event_date
   ON project_events (event_date DESC);
 
+-- Tabla para imágenes asociadas a eventos (1 a 5 por evento)
+CREATE TABLE IF NOT EXISTS project_event_images (
+  id          SERIAL PRIMARY KEY,
+  event_id    INTEGER NOT NULL REFERENCES project_events(id) ON DELETE CASCADE,
+  image_url  VARCHAR(512) NOT NULL,
+  sort_order  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_event_images_event_id
+  ON project_event_images (event_id);
+
+CREATE INDEX IF NOT EXISTS idx_project_event_images_sort
+  ON project_event_images (event_id, sort_order);
+
