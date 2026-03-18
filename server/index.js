@@ -102,14 +102,12 @@ function withAbsoluteCoverList(rows) {
 
 function withAbsoluteEventImages(event) {
   if (!event || !Array.isArray(event.images)) return event;
-  if (!PUBLIC_BASE_URL) return event;
-  return {
-    ...event,
-    images: event.images.map((img) => {
-      if (typeof img === 'string' && img.startsWith('/')) return PUBLIC_BASE_URL + img;
-      return img;
-    }),
-  };
+  // Importante:
+  // Para evitar problemas de DNS/host desde `localhost` o redes distintas,
+  // devolvemos las URLs como relativas tal como se guardan en BD:
+  //   /api/eventos/uploads/...
+  // De esta forma cargan vía Nginx/proxy/túnel al backend.
+  return { ...event, images: event.images };
 }
 
 function withAbsoluteEventImagesList(rows) {
