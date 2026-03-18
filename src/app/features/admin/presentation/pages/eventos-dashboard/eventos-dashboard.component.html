@@ -1,0 +1,218 @@
+<section class="min-h-screen bg-slate-50">
+  <header class="border-b bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark text-white shadow-sm">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-4 py-4">
+      <div class="flex items-center gap-3">
+        <img src="assets/logo_letras_blancas.png" alt="Smart Campus UTP Chiriquí" class="h-10 w-auto object-contain drop-shadow-md" />
+        <div>
+          <p class="text-[11px] font-semibold tracking-wide uppercase text-blue-100">Panel administrativo</p>
+          <h1 class="text-lg font-bold text-white">Eventos</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a
+          routerLink="/admin/bitacora"
+          class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors"
+        >
+          Bitácora
+        </a>
+        <a
+          routerLink="/"
+          class="hidden sm:inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors"
+        >
+          Volver al sitio
+        </a>
+        <button
+          type="button"
+          (click)="abrirConfirmacionLogout()"
+          class="inline-flex items-center justify-center h-8 w-8 rounded-full border border-white/30 text-blue-50 hover:bg-white/10 hover:text-white transition-colors"
+          title="Cerrar sesión"
+          aria-label="Cerrar sesión"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 17l5-5-5-5M15 12H3" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8 space-y-8 relative">
+    <section>
+      <div class="relative overflow-hidden rounded-2xl bg-white/90 shadow-xl border border-slate-200">
+        <div class="border-b border-white/20 bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark px-5 py-4 text-white">
+          <h2 class="text-base font-semibold">{{ editando ? 'Editar evento' : 'Nuevo evento' }}</h2>
+          <p class="text-xs sm:text-sm text-blue-100 mt-0.5">
+            Publica actividades y eventos para mostrarlos automáticamente en la sección pública.
+          </p>
+        </div>
+
+        <div class="p-5 space-y-4">
+          @if (error()) {
+            <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm">{{ error() }}</div>
+          }
+          @if (success()) {
+            <div class="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-green-800 text-sm">{{ success() }}</div>
+          }
+
+          <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="title">Título</label>
+              <input
+                id="title"
+                type="text"
+                formControlName="title"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="description">Descripción</label>
+              <textarea
+                id="description"
+                rows="5"
+                formControlName="description"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition resize-y"
+              ></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="event_date">Fecha y hora</label>
+                <input
+                  id="event_date"
+                  type="datetime-local"
+                  formControlName="event_date"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="location">Lugar</label>
+                <input
+                  id="location"
+                  type="text"
+                  formControlName="location"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="author">Responsable / autor</label>
+              <input
+                id="author"
+                type="text"
+                formControlName="author"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none transition"
+              />
+            </div>
+
+            <div class="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                (click)="limpiarFormulario()"
+                class="text-sm text-gray-500 hover:text-gray-800 underline underline-offset-4"
+              >
+                Limpiar formulario
+              </button>
+
+              <button
+                type="submit"
+                [disabled]="form.invalid || cargandoForm()"
+                class="inline-flex items-center justify-center rounded-xl bg-utp-blue px-4 py-2 text-sm font-semibold text-white hover:bg-utp-blue-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                @if (cargandoForm()) {
+                  Guardando...
+                } @else {
+                  {{ editando ? 'Actualizar evento' : 'Publicar evento' }}
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900">Eventos publicados</h2>
+          <p class="text-sm text-gray-600">Listado del más reciente al más antiguo.</p>
+        </div>
+        <button
+          type="button"
+          (click)="cargar()"
+          class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Recargar
+        </button>
+      </div>
+
+      @if (cargandoLista()) {
+        <div class="rounded-xl bg-white shadow-sm p-6 text-center text-sm text-gray-500">Cargando eventos...</div>
+      } @else if (datos().length === 0) {
+        <div class="rounded-xl bg-white shadow-sm p-6 text-center text-sm text-gray-500">
+          Aún no hay eventos registrados.
+        </div>
+      } @else {
+        <div class="space-y-3 max-h-[32rem] overflow-y-auto pr-1">
+          @for (evento of datos(); track evento.id) {
+            <article
+              class="rounded-xl bg-white shadow-sm border border-gray-100 p-4 hover:border-utp-blue/40 transition cursor-pointer"
+              (click)="seleccionar(evento)"
+            >
+              <h3 class="text-sm font-semibold text-gray-900">{{ evento.title }}</h3>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ evento.event_date | date : 'medium' }} · {{ evento.location }} · {{ evento.author }}
+              </p>
+              <p class="mt-2 text-sm text-gray-700 line-clamp-3">{{ evento.description }}</p>
+              <div class="mt-3 flex justify-end gap-2 text-xs border-t border-gray-100 pt-2">
+                <button
+                  type="button"
+                  class="text-gray-500 hover:text-gray-800 underline underline-offset-4"
+                  (click)="seleccionar(evento); $event.stopPropagation()"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="text-red-600 hover:text-red-700 underline underline-offset-4"
+                  (click)="eliminar(evento); $event.stopPropagation()"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  </main>
+
+  @if (mostrarConfirmacionLogout()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" aria-modal="true" role="dialog">
+      <div class="w-full max-w-md rounded-2xl overflow-hidden bg-white shadow-2xl border border-slate-200">
+        <div class="bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark px-5 py-4 text-white">
+          <h2 class="text-lg font-semibold">¿Cerrar sesión del panel?</h2>
+        </div>
+        <div class="px-5 py-4 flex justify-end gap-3 bg-slate-50 border-t border-slate-200">
+          <button
+            type="button"
+            (click)="cancelarCerrarSesion()"
+            class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmarCerrarSesion()"
+            class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold bg-utp-blue text-white hover:bg-utp-blue-dark shadow-sm transition-colors"
+          >
+            Sí, cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>
+

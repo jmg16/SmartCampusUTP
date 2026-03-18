@@ -24,6 +24,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'eventos',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/eventos-public/eventos-public.component').then(
+        (m) => m.EventosPublicComponent
+      ),
+  },
+  {
     path: 'gemelo-3d',
     loadComponent: () =>
       import('./features/landing/presentation/pages/gemelo-3d/gemelo-3d.component').then(
@@ -49,6 +56,14 @@ export const routes: Routes = [
       import(
         './features/admin/presentation/pages/bitacora-dashboard/bitacora-dashboard.component'
       ).then((m) => m.BitacoraDashboardComponent),
+  },
+  {
+    path: 'admin/eventos',
+    canActivate: [bitacoraAuthGuard],
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/eventos-dashboard/eventos-dashboard.component').then(
+        (m) => m.EventosDashboardComponent
+      ),
   },
   { path: '**', redirectTo: '' },
 ];

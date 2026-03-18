@@ -17,6 +17,7 @@ export class NavbarComponent {
     { label: 'Filosofía', fragment: 'filosofia' },
     { label: 'Equipo', fragment: 'equipo' },
     { label: 'Bitácora', route: '/bitacora' },
+    { label: 'Eventos', route: '/eventos' },
     { label: 'Gemelo 3D', route: '/gemelo-3d' },
     { label: 'Únete', fragment: 'unete' },
   ];

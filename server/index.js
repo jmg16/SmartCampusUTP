@@ -133,8 +133,8 @@ if (!BITACORA_JWT_SECRET || !hasAnyAdmin) {
 
 const BITACORA_STATUS = ['En progreso', 'Completado', 'Bloqueado'];
 
-function ensureBitacoraConfig(res) {
-  if (!bitacoraPool || !BITACORA_JWT_SECRET || !hasAnyAdmin) {
+function ensureBitacoraDbConfig(res) {
+  if (!bitacoraPool) {
     res.status(503).json({
       ok: false,
       mensaje: 'Servicio de bitácora no está configurado en el servidor.',
@@ -142,6 +142,40 @@ function ensureBitacoraConfig(res) {
     return false;
   }
   return true;
+}
+
+function ensureBitacoraConfig(res) {
+  if (!ensureBitacoraDbConfig(res) || !BITACORA_JWT_SECRET || !hasAnyAdmin) {
+    res.status(503).json({
+      ok: false,
+      mensaje: 'Servicio de bitácora no está configurado en el servidor.',
+    });
+    return false;
+  }
+  return true;
+}
+
+async function ensureEventosTable() {
+  if (!bitacoraPool) return;
+  try {
+    await bitacoraPool.query(`
+      CREATE TABLE IF NOT EXISTS project_events (
+        id          SERIAL PRIMARY KEY,
+        title       VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        event_date  TIMESTAMPTZ NOT NULL,
+        location    VARCHAR(255) NOT NULL,
+        author      VARCHAR(255) NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_project_events_event_date
+      ON project_events (event_date DESC)
+    `);
+  } catch (err) {
+    console.error('[eventos] No se pudo asegurar la tabla project_events:', err.message);
+  }
 }
 
 function requireBitacoraAuth(req, res, next) {
@@ -177,6 +211,170 @@ app.get('/api/health', (req, res) => {
 });
 
 // --- Bitácora de proyecto ---
+
+// --- Eventos ---
+
+app.get('/api/eventos', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+  try {
+    const result = await bitacoraPool.query(
+      `
+      SELECT id, title, description, event_date, location, author, created_at
+      FROM project_events
+      ORDER BY event_date DESC
+      LIMIT $1
+    `,
+      [limit]
+    );
+    res.json({ ok: true, datos: result.rows });
+  } catch (err) {
+    console.error('Error en GET /api/eventos:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al obtener los eventos.',
+    });
+  }
+});
+
+app.get('/api/eventos/:id', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'ID inválido.',
+    });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `
+      SELECT id, title, description, event_date, location, author, created_at
+      FROM project_events
+      WHERE id = $1
+    `,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        mensaje: 'Evento no encontrado.',
+      });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en GET /api/eventos/:id:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al obtener el evento.',
+    });
+  }
+});
+
+app.post('/api/eventos', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const { title, description, event_date, location, author } = req.body || {};
+  if (!title || !description || !event_date || !location || !author) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'Faltan campos requeridos: title, description, event_date, location, author.',
+    });
+  }
+  const date = new Date(event_date);
+  if (Number.isNaN(date.getTime())) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'event_date inválido.',
+    });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `
+      INSERT INTO project_events (title, description, event_date, location, author)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, title, description, event_date, location, author, created_at
+    `,
+      [String(title).trim(), String(description).trim(), date.toISOString(), String(location).trim(), String(author).trim()]
+    );
+    res.status(201).json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en POST /api/eventos:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al crear el evento.',
+    });
+  }
+});
+
+app.put('/api/eventos/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  const { title, description, event_date, location, author } = req.body || {};
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!title || !description || !event_date || !location || !author) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'Faltan campos requeridos: title, description, event_date, location, author.',
+    });
+  }
+  const date = new Date(event_date);
+  if (Number.isNaN(date.getTime())) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'event_date inválido.',
+    });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `
+      UPDATE project_events
+      SET title = $1, description = $2, event_date = $3, location = $4, author = $5
+      WHERE id = $6
+      RETURNING id, title, description, event_date, location, author, created_at
+    `,
+      [String(title).trim(), String(description).trim(), date.toISOString(), String(location).trim(), String(author).trim(), id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        mensaje: 'Evento no encontrado.',
+      });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en PUT /api/eventos/:id:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al actualizar el evento.',
+    });
+  }
+});
+
+app.delete('/api/eventos/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const result = await bitacoraPool.query('DELETE FROM project_events WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        mensaje: 'Evento no encontrado.',
+      });
+    }
+    res.json({ ok: true, mensaje: 'Evento eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error en DELETE /api/eventos/:id:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al eliminar el evento.',
+    });
+  }
+});
 
 // Login admin para dashboard de bitácora
 app.post('/api/bitacora/login', (req, res) => {
@@ -582,6 +780,8 @@ app.post('/api/registro', async (req, res) => {
 app.get('/', (_req, res) => {
   res.send('API Smart Campus en funcionamiento');
 });
+
+ensureEventosTable();
 
 app.listen(PORT, () => {
   console.log(`API Smart Campus escuchando en http://localhost:${PORT}`);
