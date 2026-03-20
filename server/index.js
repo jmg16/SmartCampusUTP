@@ -67,7 +67,7 @@ const uploadBitacora = multer({
 // se carguen igual aunque el usuario entre por IP u otro host
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
-// --- Multer para imágenes de eventos (1 a 10 por evento) ---
+// --- Multer para imágenes de eventos (1 a 5 por evento) ---
 const storageEventos = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_EVENTOS_DIR),
   filename: (_req, file, cb) => {
@@ -516,8 +516,8 @@ app.delete('/api/eventos/:id/images', requireBitacoraAuth, async (req, res) => {
   }
 });
 
-// Reemplazar imágenes del evento (1 a 10)
-app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('images', 10), async (req, res) => {
+// Reemplazar imágenes del evento (1 a 5)
+app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('images', 5), async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) {

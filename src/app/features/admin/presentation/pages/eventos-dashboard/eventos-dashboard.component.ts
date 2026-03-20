@@ -31,7 +31,7 @@ export class EventosDashboardComponent implements OnInit {
   imagenesNuevas = signal<File[]>([]);
   previewImagenes = signal<string[]>([]);
 
-  readonly MAX_IMAGENES = 10;
+  readonly MAX_IMAGENES = 5;
 
   /** Si se quiere borrar las imágenes actuales (sin subir nuevas). */
   borrarImagenesActuales = signal(false);
