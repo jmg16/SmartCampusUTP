@@ -31,7 +31,10 @@ export class EventosDashboardComponent implements OnInit {
   imagenesNuevas = signal<File[]>([]);
   previewImagenes = signal<string[]>([]);
 
-  readonly MAX_IMAGENES = 5;
+  readonly MAX_IMAGENES = 10;
+
+  /** Si se quiere borrar las imágenes actuales (sin subir nuevas). */
+  borrarImagenesActuales = signal(false);
 
   form = this.fb.group({
     id: [null as number | null],
@@ -74,6 +77,7 @@ export class EventosDashboardComponent implements OnInit {
       author: evento.author,
     });
     this.imagenesActuales.set(evento.images ?? []);
+    this.borrarImagenesActuales.set(false);
     this.imagenesNuevas.set([]);
     // Revoke de previews previas (si existían)
     const prev = this.previewImagenes();
@@ -96,34 +100,34 @@ export class EventosDashboardComponent implements OnInit {
     this.previewImagenes.set([]);
     this.imagenesNuevas.set([]);
     this.imagenesActuales.set([]);
+    this.borrarImagenesActuales.set(false);
   }
 
   onImagesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
+    const newFiles = Array.from(input.files ?? []);
 
-    // Limpiar previews previas
-    const prev = this.previewImagenes();
-    for (const u of prev) URL.revokeObjectURL(u);
-    this.previewImagenes.set([]);
+    if (!newFiles.length) return;
+    this.error.set(null);
+    this.success.set(null);
 
-    if (!files.length) {
-      this.imagenesNuevas.set([]);
-      this.imagenesActuales.set([]);
+    const actuales = this.imagenesNuevas();
+    const restantes = this.MAX_IMAGENES - actuales.length;
+    if (restantes <= 0) {
+      this.error.set(`Ya alcanzaste el máximo de ${this.MAX_IMAGENES} imágenes.`);
       input.value = '';
       return;
     }
 
-    if (files.length > this.MAX_IMAGENES) {
-      this.error.set(`Puedes subir máximo ${this.MAX_IMAGENES} imágenes.`);
-      this.success.set(null);
-      this.imagenesNuevas.set(files.slice(0, this.MAX_IMAGENES));
-    } else {
-      this.imagenesNuevas.set(files);
-    }
+    const toAdd = newFiles.slice(0, restantes);
+    const combined = [...actuales, ...toAdd];
 
-    const toUse = (files.length > this.MAX_IMAGENES ? files.slice(0, this.MAX_IMAGENES) : files);
-    this.previewImagenes.set(toUse.map((f) => URL.createObjectURL(f)));
+    // Limpiar previews previas y recrearlas (se acumulan)
+    const prev = this.previewImagenes();
+    for (const u of prev) URL.revokeObjectURL(u);
+    this.previewImagenes.set(combined.map((f) => URL.createObjectURL(f)));
+    this.imagenesNuevas.set(combined);
+
     input.value = '';
   }
 
@@ -132,6 +136,35 @@ export class EventosDashboardComponent implements OnInit {
     for (const u of prev) URL.revokeObjectURL(u);
     this.previewImagenes.set([]);
     this.imagenesNuevas.set([]);
+  }
+
+  quitarImagenSeleccionada(index: number): void {
+    const prevUrls = this.previewImagenes();
+    const files = this.imagenesNuevas();
+    if (index < 0 || index >= prevUrls.length || index >= files.length) return;
+
+    // Liberar memoria del preview removido
+    try {
+      URL.revokeObjectURL(prevUrls[index]);
+    } catch {
+      // noop
+    }
+
+    const nextUrls = prevUrls.filter((_u, i) => i !== index);
+    const nextFiles = files.filter((_f, i) => i !== index);
+
+    this.previewImagenes.set(nextUrls);
+    this.imagenesNuevas.set(nextFiles);
+    this.error.set(null);
+    this.success.set(null);
+  }
+
+  borrarImagenesActualesFn(): void {
+    if (!confirm('¿Quitar todas las imágenes actuales de este evento?')) return;
+    this.borrarImagenesActuales.set(true);
+    this.imagenesActuales.set([]);
+    this.error.set(null);
+    this.success.set(null);
   }
 
   enviar(): void {
@@ -179,14 +212,33 @@ export class EventosDashboardComponent implements OnInit {
               this.error.set(err?.error?.mensaje || err?.message || 'Error al subir imágenes del evento.');
             },
           });
-        } else {
-          this.cargandoForm.set(false);
-          this.success.set(id ? 'Evento actualizado correctamente.' : 'Evento creado correctamente.');
-          this.error.set(null);
-          this.limpiarFormulario();
-          this.cargar();
-          setTimeout(() => this.success.set(null), 4000);
+          return;
         }
+
+        if (this.borrarImagenesActuales()) {
+          this.eventos.deleteImages(eventId).subscribe({
+            next: () => {
+              this.cargandoForm.set(false);
+              this.success.set(id ? 'Evento actualizado (sin imágenes).' : 'Evento creado (sin imágenes).');
+              this.error.set(null);
+              this.limpiarFormulario();
+              this.cargar();
+              setTimeout(() => this.success.set(null), 4000);
+            },
+            error: (err) => {
+              this.cargandoForm.set(false);
+              this.error.set(err?.error?.mensaje || err?.message || 'Error al eliminar imágenes del evento.');
+            },
+          });
+          return;
+        }
+
+        this.cargandoForm.set(false);
+        this.success.set(id ? 'Evento actualizado correctamente.' : 'Evento creado correctamente.');
+        this.error.set(null);
+        this.limpiarFormulario();
+        this.cargar();
+        setTimeout(() => this.success.set(null), 4000);
       },
       error: (err) => {
         this.cargandoForm.set(false);

@@ -23,6 +23,13 @@
         </a>
         <button
           type="button"
+          class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20"
+        >
+          <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.4)]"></span>
+          Sesión activa
+        </button>
+        <button
+          type="button"
           (click)="abrirConfirmacionLogout()"
           class="inline-flex items-center justify-center h-8 w-8 rounded-full border border-white/30 text-blue-50 hover:bg-white/10 hover:text-white transition-colors"
           title="Cerrar sesión"
@@ -108,8 +115,8 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="event_images">Imágenes del evento (1 a 5)</label>
-              <p class="text-xs text-gray-500 mb-2">Puedes seleccionar de 1 a 5 imágenes. Se mostrarán en la página pública del evento.</p>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="event_images">Imágenes del evento (1 a 10)</label>
+              <p class="text-xs text-gray-500 mb-2">Puedes seleccionar de 1 a 10 imágenes. Se mostrarán en la página pública del evento.</p>
               <input
                 id="event_images"
                 type="file"
@@ -122,7 +129,9 @@
               @if (previewImagenes().length) {
                 <div class="mt-3">
                   <div class="flex items-center justify-between gap-3 mb-2">
-                    <p class="text-xs text-gray-600">Vista previa (seleccionadas): {{ previewImagenes().length }}</p>
+                    <p class="text-xs text-gray-600">
+                      Seleccionadas: {{ imagenesNuevas().length }}/{{ MAX_IMAGENES }} (se acumulan hasta 5)
+                    </p>
                     <button
                       type="button"
                       (click)="limpiarSeleccionImgenes()"
@@ -134,12 +143,30 @@
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     @for (img of previewImagenes(); track $index) {
                       @if ($index === 0) {
-                        <div class="sm:col-span-2 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                        <div class="sm:col-span-2 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 relative">
                           <img [src]="img" alt="Vista previa imagen del evento" class="w-full h-44 object-cover" />
+                          <button
+                            type="button"
+                            (click)="quitarImagenSeleccionada($index)"
+                            class="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-sm border border-white/30"
+                            aria-label="Quitar imagen"
+                            title="Quitar imagen"
+                          >
+                            ✕
+                          </button>
                         </div>
                       } @else {
-                        <div class="rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                        <div class="rounded-lg overflow-hidden border border-gray-100 bg-gray-50 relative">
                           <img [src]="img" alt="Vista previa imagen del evento" class="w-full h-28 object-cover" />
+                          <button
+                            type="button"
+                            (click)="quitarImagenSeleccionada($index)"
+                            class="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-sm border border-white/30"
+                            aria-label="Quitar imagen"
+                            title="Quitar imagen"
+                          >
+                            ✕
+                          </button>
                         </div>
                       }
                     }
@@ -148,6 +175,13 @@
               } @else if (imagenesActuales().length) {
                 <div class="mt-3">
                   <p class="text-xs text-gray-600 mb-2">Imágenes actuales: {{ imagenesActuales().length }}</p>
+                  <button
+                    type="button"
+                    (click)="borrarImagenesActualesFn()"
+                    class="text-xs text-red-600 hover:text-red-700 underline underline-offset-4 mb-3"
+                  >
+                    Quitar imágenes actuales
+                  </button>
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     @for (img of imagenesActuales(); track $index) {
                       @if ($index === 0) {

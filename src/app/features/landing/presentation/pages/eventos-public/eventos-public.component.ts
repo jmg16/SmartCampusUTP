@@ -19,6 +19,8 @@ export class EventosPublicComponent implements OnInit {
   cargando = signal(true);
   error = signal<string | null>(null);
   busqueda = signal('');
+  /** Índice activo del carrusel por eventoId */
+  private activeIndex = signal<Record<number, number>>({});
 
   filtrados = computed(() => {
     const q = this.normalize(this.busqueda());
@@ -51,6 +53,34 @@ export class EventosPublicComponent implements OnInit {
         this.cargando.set(false);
       },
     });
+  }
+
+  getActive(eventId: number): number {
+    return this.activeIndex()[eventId] ?? 0;
+  }
+
+  setActive(eventId: number, index: number, total: number): void {
+    const clamped = Math.max(0, Math.min(index, Math.max(total - 1, 0)));
+    this.activeIndex.update((prev) => ({ ...prev, [eventId]: clamped }));
+    this.scrollCarousel(eventId, clamped);
+  }
+
+  prev(eventId: number, total: number): void {
+    this.setActive(eventId, this.getActive(eventId) - 1, total);
+  }
+
+  next(eventId: number, total: number): void {
+    this.setActive(eventId, this.getActive(eventId) + 1, total);
+  }
+
+  private scrollCarousel(eventId: number, index: number): void {
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+      const el = document.getElementById(`evento-carousel-${eventId}`);
+      if (!el) return;
+      const width = el.clientWidth;
+      el.scrollTo({ left: width * index, behavior: 'smooth' });
+    }, 0);
   }
 
   private normalize(value: string): string {

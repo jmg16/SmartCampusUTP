@@ -67,7 +67,7 @@ const uploadBitacora = multer({
 // se carguen igual aunque el usuario entre por IP u otro host
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
-// --- Multer para imágenes de eventos (1 a 5 por evento) ---
+// --- Multer para imágenes de eventos (1 a 10 por evento) ---
 const storageEventos = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_EVENTOS_DIR),
   filename: (_req, file, cb) => {
@@ -483,8 +483,41 @@ app.delete('/api/eventos/:id', requireBitacoraAuth, async (req, res) => {
   }
 });
 
-// Reemplazar imágenes del evento (1 a 5)
-app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('images', 5), async (req, res) => {
+// Quitar todas las imágenes del evento (sin borrar el evento)
+app.delete('/api/eventos/:id/images', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+
+  try {
+    const prev = await bitacoraPool.query(
+      'SELECT image_url FROM project_event_images WHERE event_id = $1 ORDER BY sort_order',
+      [id]
+    );
+    for (const row of prev.rows) {
+      const url = row.image_url;
+      if (typeof url === 'string') {
+        const filename = path.basename(url);
+        const filePath = path.join(UPLOADS_EVENTOS_DIR, filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
+
+    await bitacoraPool.query('DELETE FROM project_event_images WHERE event_id = $1', [id]);
+    res.json({ ok: true, mensaje: 'Imágenes del evento eliminadas correctamente.' });
+  } catch (err) {
+    console.error('Error en DELETE /api/eventos/:id/images:', err);
+    res.status(500).json({
+      ok: false,
+      mensaje: 'Error al eliminar las imágenes del evento.',
+    });
+  }
+});
+
+// Reemplazar imágenes del evento (1 a 10)
+app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('images', 10), async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) {

@@ -67,5 +67,14 @@ export class EventosService {
       })
       .pipe(map(() => void 0));
   }
+
+  /** Elimina todas las imágenes asociadas al evento. */
+  deleteImages(eventId: number): Observable<void> {
+    return this.http
+      .delete<{ ok: boolean }>(`/api/eventos/${eventId}/images`, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map(() => void 0));
+  }
 }
 
