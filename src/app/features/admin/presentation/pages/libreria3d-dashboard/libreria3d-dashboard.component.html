@@ -143,12 +143,13 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           @for (modelo of datos(); track modelo.id) {
             <div class="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              <div class="h-44 bg-gray-100">
+              <div class="h-44 bg-gradient-to-b from-gray-800 to-gray-900">
                 <model-viewer
                   [attr.src]="modelo.file_url"
                   auto-rotate
                   camera-controls
                   shadow-intensity="1"
+                  environment-image="neutral"
                   class="w-full h-full"
                   style="--poster-color: transparent;"
                 ></model-viewer>
