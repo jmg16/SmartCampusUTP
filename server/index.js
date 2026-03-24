@@ -46,6 +46,12 @@ if (!fs.existsSync(UPLOADS_EVENTOS_DIR)) {
   fs.mkdirSync(UPLOADS_EVENTOS_DIR, { recursive: true });
 }
 
+// Carpeta para modelos 3D (.glb)
+const UPLOADS_MODELOS3D_DIR = path.join(__dirname, 'uploads', 'modelos3d');
+if (!fs.existsSync(UPLOADS_MODELOS3D_DIR)) {
+  fs.mkdirSync(UPLOADS_MODELOS3D_DIR, { recursive: true });
+}
+
 const storageBitacora = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_BITACORA_DIR),
   filename: (req, file, cb) => {
@@ -87,6 +93,27 @@ const uploadEventos = multer({
   },
 });
 
+// --- Multer para modelos 3D (.glb, hasta 50 MB) ---
+const storageModelos3d = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_MODELOS3D_DIR),
+  filename: (_req, file, cb) => {
+    const safe = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.glb`;
+    cb(null, safe);
+  },
+});
+
+const uploadModelo3d = multer({
+  storage: storageModelos3d,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      file.mimetype === 'model/gltf-binary' ||
+      file.mimetype === 'application/octet-stream' ||
+      file.originalname.toLowerCase().endsWith('.glb');
+    cb(null, ok);
+  },
+});
+
 function withAbsoluteCover(log) {
   if (!log || !log.cover_image) return log;
   const cover = log.cover_image;
@@ -121,6 +148,9 @@ app.use('/api/bitacora/uploads', express.static(UPLOADS_BITACORA_DIR));
 
 // Servir imágenes de eventos (URL pública para el front)
 app.use('/api/eventos/uploads', express.static(UPLOADS_EVENTOS_DIR));
+
+// Servir archivos de modelos 3D (.glb)
+app.use('/api/modelos3d/uploads', express.static(UPLOADS_MODELOS3D_DIR));
 
 // Pool principal (landing / interesados)
 const pool = new Pool({
@@ -237,6 +267,34 @@ async function ensureEventosTable() {
     `);
   } catch (err) {
     console.error('[eventos] No se pudo asegurar la tabla project_events:', err.message);
+  }
+}
+
+async function ensureModelLibraryTable() {
+  if (!bitacoraPool) return;
+  try {
+    await bitacoraPool.query(`
+      CREATE TABLE IF NOT EXISTS model_library (
+        id          SERIAL PRIMARY KEY,
+        name        VARCHAR(255) NOT NULL,
+        category    VARCHAR(100) NOT NULL,
+        description TEXT,
+        file_url    VARCHAR(512) NOT NULL,
+        file_size   BIGINT,
+        author      VARCHAR(255) NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_model_library_category
+      ON model_library (category)
+    `);
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_model_library_created_at
+      ON model_library (created_at DESC)
+    `);
+  } catch (err) {
+    console.error('[modelos3d] No se pudo asegurar la tabla model_library:', err.message);
   }
 }
 
@@ -920,6 +978,188 @@ app.delete('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
   }
 });
 
+// --- Librería de Modelos 3D ---
+
+app.get('/api/modelos3d', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
+  const category = req.query.category;
+  try {
+    const params = [];
+    let where = '';
+    if (category && typeof category === 'string' && category.trim()) {
+      where = 'WHERE category = $1';
+      params.push(category.trim());
+    }
+    const result = await bitacoraPool.query(
+      `SELECT id, name, category, description, file_url, file_size, author, created_at
+       FROM model_library ${where}
+       ORDER BY created_at DESC
+       LIMIT $${params.length + 1}`,
+      [...params, limit]
+    );
+    res.json({ ok: true, datos: result.rows });
+  } catch (err) {
+    console.error('Error en GET /api/modelos3d:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener los modelos 3D.' });
+  }
+});
+
+app.get('/api/modelos3d/categorias', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  try {
+    const result = await bitacoraPool.query(
+      `SELECT DISTINCT category FROM model_library ORDER BY category`
+    );
+    const categorias = result.rows.map((r) => r.category);
+    res.json({ ok: true, datos: categorias });
+  } catch (err) {
+    console.error('Error en GET /api/modelos3d/categorias:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener las categorías.' });
+  }
+});
+
+app.get('/api/modelos3d/:id', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `SELECT id, name, category, description, file_url, file_size, author, created_at
+       FROM model_library WHERE id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Modelo no encontrado.' });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en GET /api/modelos3d/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener el modelo.' });
+  }
+});
+
+app.post('/api/modelos3d', requireBitacoraAuth, uploadModelo3d.single('file'), async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  if (!req.file) {
+    return res.status(400).json({ ok: false, mensaje: 'Debes enviar un archivo .glb (campo "file").' });
+  }
+  const { name, category, description, author } = req.body || {};
+  if (!name || !category || !author) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ ok: false, mensaje: 'Faltan campos requeridos: name, category, author.' });
+  }
+  const relativePath = `/api/modelos3d/uploads/${req.file.filename}`;
+  try {
+    const result = await bitacoraPool.query(
+      `INSERT INTO model_library (name, category, description, file_url, file_size, author)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, category, description, file_url, file_size, author, created_at`,
+      [
+        String(name).trim(),
+        String(category).trim(),
+        description ? String(description).trim() : null,
+        relativePath,
+        req.file.size,
+        String(author).trim(),
+      ]
+    );
+    res.status(201).json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    fs.unlink(req.file.path, () => {});
+    console.error('Error en POST /api/modelos3d:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al crear el modelo.' });
+  }
+});
+
+app.put('/api/modelos3d/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  const { name, category, description, author } = req.body || {};
+  if (!name || !category || !author) {
+    return res.status(400).json({ ok: false, mensaje: 'Faltan campos requeridos: name, category, author.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `UPDATE model_library
+       SET name = $1, category = $2, description = $3, author = $4
+       WHERE id = $5
+       RETURNING id, name, category, description, file_url, file_size, author, created_at`,
+      [String(name).trim(), String(category).trim(), description ? String(description).trim() : null, String(author).trim(), id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Modelo no encontrado.' });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en PUT /api/modelos3d/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al actualizar el modelo.' });
+  }
+});
+
+app.put('/api/modelos3d/:id/file', requireBitacoraAuth, uploadModelo3d.single('file'), async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ ok: false, mensaje: 'Debes enviar un archivo .glb (campo "file").' });
+  }
+  try {
+    const prev = await bitacoraPool.query('SELECT file_url FROM model_library WHERE id = $1', [id]);
+    if (prev.rows.length === 0) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ ok: false, mensaje: 'Modelo no encontrado.' });
+    }
+    const oldUrl = prev.rows[0].file_url;
+    if (oldUrl) {
+      const oldFile = path.join(UPLOADS_MODELOS3D_DIR, path.basename(oldUrl));
+      if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
+    }
+    const relativePath = `/api/modelos3d/uploads/${req.file.filename}`;
+    const result = await bitacoraPool.query(
+      `UPDATE model_library SET file_url = $1, file_size = $2 WHERE id = $3
+       RETURNING id, name, category, description, file_url, file_size, author, created_at`,
+      [relativePath, req.file.size, id]
+    );
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    fs.unlink(req.file.path, () => {});
+    console.error('Error en PUT /api/modelos3d/:id/file:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al reemplazar el archivo del modelo.' });
+  }
+});
+
+app.delete('/api/modelos3d/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const prev = await bitacoraPool.query('SELECT file_url FROM model_library WHERE id = $1', [id]);
+    if (prev.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Modelo no encontrado.' });
+    }
+    const fileUrl = prev.rows[0].file_url;
+    if (fileUrl) {
+      const filePath = path.join(UPLOADS_MODELOS3D_DIR, path.basename(fileUrl));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    await bitacoraPool.query('DELETE FROM model_library WHERE id = $1', [id]);
+    res.json({ ok: true, mensaje: 'Modelo eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error en DELETE /api/modelos3d/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al eliminar el modelo.' });
+  }
+});
+
 // Registro de interesados desde la landing
 app.post('/api/registro', async (req, res) => {
   const { nombre, correo, rol } = req.body || {};
@@ -971,6 +1211,7 @@ app.get('/', (_req, res) => {
 });
 
 ensureEventosTable();
+ensureModelLibraryTable();
 
 app.listen(PORT, () => {
   console.log(`API Smart Campus escuchando en http://localhost:${PORT}`);

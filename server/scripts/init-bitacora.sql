@@ -41,3 +41,21 @@ CREATE INDEX IF NOT EXISTS idx_project_event_images_event_id
 CREATE INDEX IF NOT EXISTS idx_project_event_images_sort
   ON project_event_images (event_id, sort_order);
 
+-- Tabla para librería de modelos 3D
+CREATE TABLE IF NOT EXISTS model_library (
+  id          SERIAL PRIMARY KEY,
+  name        VARCHAR(255) NOT NULL,
+  category    VARCHAR(100) NOT NULL,
+  description TEXT,
+  file_url    VARCHAR(512) NOT NULL,
+  file_size   BIGINT,
+  author      VARCHAR(255) NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_library_category
+  ON model_library (category);
+
+CREATE INDEX IF NOT EXISTS idx_model_library_created_at
+  ON model_library (created_at DESC);
+

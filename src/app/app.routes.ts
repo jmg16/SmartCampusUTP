@@ -38,6 +38,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'libreria-3d',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/libreria-3d/libreria-3d.component').then(
+        (m) => m.Libreria3dComponent
+      ),
+  },
+  {
     path: 'admin',
     redirectTo: 'admin/login',
     pathMatch: 'full',
@@ -63,6 +70,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admin/presentation/pages/eventos-dashboard/eventos-dashboard.component').then(
         (m) => m.EventosDashboardComponent
+      ),
+  },
+  {
+    path: 'admin/libreria-3d',
+    canActivate: [bitacoraAuthGuard],
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/libreria3d-dashboard/libreria3d-dashboard.component').then(
+        (m) => m.Libreria3dDashboardComponent
       ),
   },
   { path: '**', redirectTo: '' },

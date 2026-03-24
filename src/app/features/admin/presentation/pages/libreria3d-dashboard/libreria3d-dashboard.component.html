@@ -1,0 +1,178 @@
+<section class="min-h-screen bg-slate-50">
+  <header class="border-b bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark text-white shadow-sm">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-4 py-4">
+      <div class="flex items-center gap-3">
+        <img src="assets/logo_letras_blancas.png" alt="Smart Campus UTP Chiriquí" class="h-10 w-auto object-contain drop-shadow-md" />
+        <div>
+          <p class="text-[11px] font-semibold tracking-wide uppercase text-blue-100">Panel administrativo</p>
+          <h1 class="text-lg font-bold text-white">Librería de Modelos 3D</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a routerLink="/admin/bitacora" class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors">
+          Bitácora
+        </a>
+        <a routerLink="/admin/eventos" class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors">
+          Eventos
+        </a>
+        <a routerLink="/" class="hidden sm:inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors">
+          Volver al sitio
+        </a>
+        <button type="button" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.4)]"></span>
+          Sesión activa
+        </button>
+        <button type="button" (click)="abrirConfirmacionLogout()" class="rounded-full bg-red-500/20 border border-red-300/30 p-1.5 hover:bg-red-500/40 transition-colors" title="Cerrar sesión">
+          <svg class="w-4 h-4 text-red-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    @if (error()) {
+      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ error() }}</div>
+    }
+    @if (success()) {
+      <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ success() }}</div>
+    }
+
+    <!-- Formulario -->
+    <div class="rounded-2xl bg-white shadow-lg border border-gray-100 p-6 mb-8">
+      <h2 class="text-lg font-bold text-gray-900 mb-4">{{ editando ? 'Editar modelo' : 'Subir nuevo modelo 3D' }}</h2>
+
+      <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre del modelo *</label>
+            <input formControlName="name" id="name" type="text" placeholder="Ej: Silla de aula" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none" />
+          </div>
+          <div>
+            <label for="author" class="block text-sm font-medium text-gray-700 mb-1">Autor *</label>
+            <input formControlName="author" id="author" type="text" placeholder="Ej: Juan Pérez" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+            <select formControlName="category" id="category" (change)="onCategoriaChange()" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none">
+              <option value="" disabled>Selecciona una categoría</option>
+              @for (cat of todasCategorias(); track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+              <option value="__nueva__">+ Agregar nueva categoría</option>
+            </select>
+          </div>
+          @if (mostrarInputCustomCategoria()) {
+            <div>
+              <label for="customCategory" class="block text-sm font-medium text-gray-700 mb-1">Nueva categoría *</label>
+              <input formControlName="customCategory" id="customCategory" type="text" placeholder="Escribe el nombre de la categoría" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none" />
+            </div>
+          }
+        </div>
+
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción (opcional)</label>
+          <textarea formControlName="description" id="description" rows="3" placeholder="Breve descripción del modelo 3D..." class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            {{ editando ? 'Reemplazar archivo .glb (opcional)' : 'Archivo .glb *' }}
+          </label>
+          <div class="flex items-center gap-3">
+            <label class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Seleccionar .glb
+              <input type="file" accept=".glb" class="hidden" (change)="onFileSelected($event)" />
+            </label>
+            @if (!editando && archivoGlbNombre()) {
+              <span class="text-sm text-gray-600">{{ archivoGlbNombre() }}</span>
+            }
+            @if (editando && reemplazarArchivo()) {
+              <span class="text-sm text-green-700">Nuevo archivo seleccionado</span>
+            }
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" [disabled]="form.invalid || cargandoForm()" class="rounded-lg bg-utp-blue px-6 py-2.5 text-sm font-semibold text-white hover:bg-utp-blue-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            {{ cargandoForm() ? 'Guardando...' : (editando ? 'Actualizar modelo' : 'Subir modelo') }}
+          </button>
+          @if (editando) {
+            <button type="button" (click)="limpiarFormulario()" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+              Cancelar edición
+            </button>
+          }
+        </div>
+      </form>
+    </div>
+
+    <!-- Lista de modelos -->
+    <div class="rounded-2xl bg-white shadow-lg border border-gray-100 p-6">
+      <h2 class="text-lg font-bold text-gray-900 mb-4">Modelos existentes</h2>
+
+      @if (cargandoLista()) {
+        <p class="text-sm text-gray-500">Cargando modelos...</p>
+      } @else if (datos().length === 0) {
+        <p class="text-sm text-gray-500">No hay modelos 3D registrados aún.</p>
+      } @else {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          @for (modelo of datos(); track modelo.id) {
+            <div class="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              <div class="h-44 bg-gray-100">
+                <model-viewer
+                  [attr.src]="modelo.file_url"
+                  auto-rotate
+                  camera-controls
+                  shadow-intensity="1"
+                  class="w-full h-full"
+                  style="--poster-color: transparent;"
+                ></model-viewer>
+              </div>
+              <div class="p-3">
+                <div class="flex items-start justify-between gap-2 mb-1">
+                  <h3 class="text-sm font-bold text-gray-900 leading-snug">{{ modelo.name }}</h3>
+                  <span class="shrink-0 inline-flex items-center rounded-full bg-utp-blue/10 text-utp-blue px-2 py-0.5 text-[10px] font-semibold">
+                    {{ modelo.category }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 mb-2">{{ modelo.author }} · {{ formatSize(modelo.file_size) }}</p>
+                <div class="flex items-center gap-2">
+                  <button type="button" (click)="seleccionar(modelo)" class="flex-1 rounded-lg border border-utp-blue text-utp-blue px-2 py-1.5 text-xs font-semibold hover:bg-utp-blue/5 transition-colors">
+                    Editar
+                  </button>
+                  <button type="button" (click)="eliminar(modelo)" class="flex-1 rounded-lg border border-red-300 text-red-600 px-2 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (mostrarConfirmacionLogout()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4 w-full">
+        <h3 class="text-lg font-bold text-gray-900 mb-2">¿Cerrar sesión?</h3>
+        <p class="text-sm text-gray-600 mb-5">Se cerrará tu sesión administrativa.</p>
+        <div class="flex justify-end gap-3">
+          <button type="button" (click)="cancelarCerrarSesion()" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            Cancelar
+          </button>
+          <button type="button" (click)="confirmarCerrarSesion()" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
+            Sí, cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

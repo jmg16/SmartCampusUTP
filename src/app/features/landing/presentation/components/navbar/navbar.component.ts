@@ -26,6 +26,7 @@ export class NavbarComponent {
       ],
     },
     { label: 'Gemelo 3D', route: '/gemelo-3d' },
+    { label: 'Librería 3D', route: '/libreria-3d' },
     { label: 'Únete', fragment: 'unete' },
   ];
 
