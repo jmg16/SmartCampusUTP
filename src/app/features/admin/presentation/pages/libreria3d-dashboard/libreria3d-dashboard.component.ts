@@ -33,6 +33,7 @@ export class Libreria3dDashboardComponent implements OnInit {
   archivoReemplazo = signal<File | null>(null);
 
   categoriasDb = signal<string[]>([]);
+  admins = signal<string[]>([]);
   mostrarInputCustomCategoria = signal(false);
 
   readonly CATEGORIAS_PREDEFINIDAS = [
@@ -61,6 +62,15 @@ export class Libreria3dDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+    this.auth.listAdmins().subscribe({
+      next: (lista) => {
+        this.admins.set(lista);
+        const actual = this.auth.getUsuarioActual();
+        if (actual && !this.form.get('id')?.value) {
+          this.form.get('author')?.setValue(actual);
+        }
+      },
+    });
   }
 
   get editando(): boolean {
@@ -136,7 +146,7 @@ export class Libreria3dDashboardComponent implements OnInit {
       category: '',
       customCategory: '',
       description: '',
-      author: '',
+      author: this.auth.getUsuarioActual() ?? '',
     });
     this.archivoGlb.set(null);
     this.archivoGlbNombre.set('');

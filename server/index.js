@@ -206,6 +206,12 @@ if (!BITACORA_JWT_SECRET || !hasAnyAdmin) {
 
 const BITACORA_STATUS = ['En progreso', 'Completado', 'Bloqueado'];
 
+// Endpoint para listar nombres de administradores (requiere auth)
+app.get('/api/bitacora/admins', requireBitacoraAuth, (_req, res) => {
+  const nombres = BITACORA_ADMIN_LIST.map((a) => a.user);
+  res.json({ ok: true, datos: nombres });
+});
+
 function ensureBitacoraDbConfig(res) {
   if (!bitacoraPool) {
     res.status(503).json({

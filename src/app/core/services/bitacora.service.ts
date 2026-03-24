@@ -64,6 +64,23 @@ export class BitacoraService {
     return true;
   }
 
+  /** Nombre del usuario admin actualmente logueado (extraído del JWT). */
+  getUsuarioActual(): string | null {
+    const t = this.token;
+    if (!t) return null;
+    const payload = this.decodeToken(t);
+    return payload?.sub ?? null;
+  }
+
+  /** Lista los nombres de todos los administradores registrados. */
+  listAdmins(): Observable<string[]> {
+    return this.http
+      .get<{ ok: boolean; datos: string[] }>('/api/bitacora/admins', {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((resp) => resp.datos ?? []));
+  }
+
   logout(): void {
     this.token = null;
   }
