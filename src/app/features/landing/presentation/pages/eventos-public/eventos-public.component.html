@@ -76,12 +76,12 @@
                     <div class="relative">
                       <div
                         id="{{ 'evento-carousel-' + evento.id }}"
-                        class="rounded-xl overflow-hidden border border-gray-100 bg-gray-50 shadow-sm w-full h-64 sm:h-72 relative flex overflow-x-auto snap-x snap-mandatory scroll-smooth"
+                        class="rounded-xl overflow-hidden border border-gray-100 bg-gray-100 shadow-sm w-full h-72 sm:h-80 md:h-[22rem] relative flex overflow-x-auto snap-x snap-mandatory scroll-smooth"
                         style="scrollbar-width: none;"
                       >
                         @for (img of evento.images; track $index) {
                           <div class="snap-start shrink-0 w-full h-full">
-                            <img [src]="img" alt="Imagen del evento" class="w-full h-full object-cover" loading="lazy" />
+                            <img [src]="img" alt="Imagen del evento" class="w-full h-full object-contain" loading="lazy" />
                           </div>
                         }
                       </div>
