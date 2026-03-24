@@ -2,6 +2,8 @@ export interface Modelo3D {
   id: number;
   name: string;
   category: string;
+  /** Código de inventario o referencia interna (obligatorio al crear/editar). */
+  reference_code?: string | null;
   description?: string;
   file_url: string;
   file_size?: number;

@@ -11,7 +11,7 @@ import { RouterLink } from '@angular/router';
 })
 export class NavbarComponent {
   menuOpen = false;
-  publicacionesOpen = false;
+  openDropdown = '';
 
   navLinks: { label: string; fragment?: string; route?: string; children?: { label: string; route: string }[] }[] =
     [
@@ -25,22 +25,31 @@ export class NavbarComponent {
         { label: 'Eventos', route: '/eventos' },
       ],
     },
-    { label: 'Gemelo 3D', route: '/gemelo-3d' },
-    { label: 'Librería 3D', route: '/libreria-3d' },
+    {
+      label: 'Plataforma 3D',
+      children: [
+        { label: 'Gemelo Digital', route: '/gemelo-3d' },
+        { label: 'Librería de Modelos', route: '/libreria-3d' },
+      ],
+    },
     { label: 'Únete', fragment: 'unete' },
   ];
 
   toggleMenu(): void {
     this.menuOpen = !this.menuOpen;
-    if (!this.menuOpen) this.publicacionesOpen = false;
+    if (!this.menuOpen) this.openDropdown = '';
   }
 
-  togglePublicaciones(): void {
-    this.publicacionesOpen = !this.publicacionesOpen;
+  toggleDropdown(label: string): void {
+    this.openDropdown = this.openDropdown === label ? '' : label;
+  }
+
+  isDropdownOpen(label: string): boolean {
+    return this.openDropdown === label;
   }
 
   closeMenu(): void {
     this.menuOpen = false;
-    this.publicacionesOpen = false;
+    this.openDropdown = '';
   }
 }

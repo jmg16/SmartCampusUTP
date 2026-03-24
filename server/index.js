@@ -281,15 +281,27 @@ async function ensureModelLibraryTable() {
   try {
     await bitacoraPool.query(`
       CREATE TABLE IF NOT EXISTS model_library (
-        id          SERIAL PRIMARY KEY,
-        name        VARCHAR(255) NOT NULL,
-        category    VARCHAR(100) NOT NULL,
-        description TEXT,
-        file_url    VARCHAR(512) NOT NULL,
-        file_size   BIGINT,
-        author      VARCHAR(255) NOT NULL,
-        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        id             SERIAL PRIMARY KEY,
+        name           VARCHAR(255) NOT NULL,
+        category       VARCHAR(100) NOT NULL,
+        reference_code VARCHAR(100) NOT NULL,
+        description    TEXT,
+        file_url       VARCHAR(512) NOT NULL,
+        file_size      BIGINT,
+        author         VARCHAR(255) NOT NULL,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+    await bitacoraPool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'model_library' AND column_name = 'reference_code'
+        ) THEN
+          ALTER TABLE model_library ADD COLUMN reference_code VARCHAR(100);
+        END IF;
+      END $$
     `);
     await bitacoraPool.query(`
       CREATE INDEX IF NOT EXISTS idx_model_library_category
@@ -986,6 +998,15 @@ app.delete('/api/bitacora/logs/:id', requireBitacoraAuth, async (req, res) => {
 
 // --- Librería de Modelos 3D ---
 
+/** Acepta reference_code, referenceCode o referencecode (body JSON o multipart). */
+function parseModelReferenceCode(body) {
+  if (!body || typeof body !== 'object') return null;
+  const raw = body.reference_code ?? body.referenceCode ?? body.referencecode;
+  if (raw == null) return null;
+  const s = String(raw).trim().slice(0, 100);
+  return s || null;
+}
+
 app.get('/api/modelos3d', async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
@@ -998,7 +1019,7 @@ app.get('/api/modelos3d', async (req, res) => {
       params.push(category.trim());
     }
     const result = await bitacoraPool.query(
-      `SELECT id, name, category, description, file_url, file_size, author, created_at
+      `SELECT id, name, category, reference_code, description, file_url, file_size, author, created_at
        FROM model_library ${where}
        ORDER BY created_at DESC
        LIMIT $${params.length + 1}`,
@@ -1033,7 +1054,7 @@ app.get('/api/modelos3d/:id', async (req, res) => {
   }
   try {
     const result = await bitacoraPool.query(
-      `SELECT id, name, category, description, file_url, file_size, author, created_at
+      `SELECT id, name, category, reference_code, description, file_url, file_size, author, created_at
        FROM model_library WHERE id = $1`,
       [id]
     );
@@ -1052,20 +1073,27 @@ app.post('/api/modelos3d', requireBitacoraAuth, uploadModelo3d.single('file'), a
   if (!req.file) {
     return res.status(400).json({ ok: false, mensaje: 'Debes enviar un archivo .glb (campo "file").' });
   }
-  const { name, category, description, author } = req.body || {};
+  const body = req.body || {};
+  const { name, category, description, author } = body;
   if (!name || !category || !author) {
     fs.unlink(req.file.path, () => {});
     return res.status(400).json({ ok: false, mensaje: 'Faltan campos requeridos: name, category, author.' });
   }
+  const refCode = parseModelReferenceCode(body);
+  if (!refCode) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ ok: false, mensaje: 'El código de referencia es obligatorio.' });
+  }
   const relativePath = `/api/modelos3d/uploads/${req.file.filename}`;
   try {
     const result = await bitacoraPool.query(
-      `INSERT INTO model_library (name, category, description, file_url, file_size, author)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, category, description, file_url, file_size, author, created_at`,
+      `INSERT INTO model_library (name, category, reference_code, description, file_url, file_size, author)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, category, reference_code, description, file_url, file_size, author, created_at`,
       [
         String(name).trim(),
         String(category).trim(),
+        refCode,
         description ? String(description).trim() : null,
         relativePath,
         req.file.size,
@@ -1086,17 +1114,29 @@ app.put('/api/modelos3d/:id', requireBitacoraAuth, async (req, res) => {
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
   }
-  const { name, category, description, author } = req.body || {};
+  const body = req.body || {};
+  const { name, category, description, author } = body;
   if (!name || !category || !author) {
     return res.status(400).json({ ok: false, mensaje: 'Faltan campos requeridos: name, category, author.' });
+  }
+  const refCode = parseModelReferenceCode(body);
+  if (!refCode) {
+    return res.status(400).json({ ok: false, mensaje: 'El código de referencia es obligatorio.' });
   }
   try {
     const result = await bitacoraPool.query(
       `UPDATE model_library
-       SET name = $1, category = $2, description = $3, author = $4
-       WHERE id = $5
-       RETURNING id, name, category, description, file_url, file_size, author, created_at`,
-      [String(name).trim(), String(category).trim(), description ? String(description).trim() : null, String(author).trim(), id]
+       SET name = $1, category = $2, reference_code = $3, description = $4, author = $5
+       WHERE id = $6
+       RETURNING id, name, category, reference_code, description, file_url, file_size, author, created_at`,
+      [
+        String(name).trim(),
+        String(category).trim(),
+        refCode,
+        description ? String(description).trim() : null,
+        String(author).trim(),
+        id,
+      ]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Modelo no encontrado.' });
@@ -1131,7 +1171,7 @@ app.put('/api/modelos3d/:id/file', requireBitacoraAuth, uploadModelo3d.single('f
     const relativePath = `/api/modelos3d/uploads/${req.file.filename}`;
     const result = await bitacoraPool.query(
       `UPDATE model_library SET file_url = $1, file_size = $2 WHERE id = $3
-       RETURNING id, name, category, description, file_url, file_size, author, created_at`,
+       RETURNING id, name, category, reference_code, description, file_url, file_size, author, created_at`,
       [relativePath, req.file.size, id]
     );
     res.json({ ok: true, dato: result.rows[0] });

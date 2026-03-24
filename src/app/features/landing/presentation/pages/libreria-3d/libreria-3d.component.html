@@ -32,7 +32,7 @@
               type="search"
               [value]="busqueda()"
               (input)="busqueda.set($any($event.target).value)"
-              placeholder="Buscar por nombre, categoría, autor..."
+              placeholder="Buscar por nombre, código, categoría, autor..."
               class="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-utp-blue focus:border-utp-blue outline-none"
             />
           </div>
@@ -65,50 +65,58 @@
             No hay modelos que coincidan con la búsqueda.
           </div>
         } @else {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            @for (modelo of filtrados(); track modelo.id) {
-              <article class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl hover:border-utp-blue/20 transition-all duration-300 flex flex-col">
-                <div class="h-56 bg-gray-100 relative">
-                  <model-viewer
-                    [attr.src]="modelo.file_url"
-                    auto-rotate
-                    camera-controls
-                    shadow-intensity="1"
-                    class="w-full h-full"
-                    style="--poster-color: transparent;"
-                  ></model-viewer>
+          <div class="space-y-12">
+            @for (grupo of agrupadosPorCategoria(); track grupo.category; let idx = $index) {
+              <section class="scroll-mt-24" [attr.id]="'libreria-grupo-' + idx">
+                <div class="flex flex-wrap items-baseline justify-between gap-2 mb-5 pb-3 border-b-2 border-utp-blue/20">
+                  <h2 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">{{ grupo.category }}</h2>
+                  <span class="text-sm text-gray-500">{{ grupo.models.length }} {{ grupo.models.length === 1 ? 'modelo' : 'modelos' }}</span>
                 </div>
-                <div class="p-4 flex flex-col flex-1">
-                  <div class="flex items-start justify-between gap-2 mb-2">
-                    <h3 class="text-base font-bold text-gray-900 leading-snug">{{ modelo.name }}</h3>
-                    <span class="shrink-0 inline-flex items-center rounded-full bg-utp-blue/10 text-utp-blue px-2.5 py-0.5 text-xs font-semibold">
-                      {{ modelo.category }}
-                    </span>
-                  </div>
-                  @if (modelo.description) {
-                    <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ modelo.description }}</p>
-                  }
-                  <div class="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div class="text-xs text-gray-400">
-                      {{ modelo.author }}
-                      @if (modelo.file_size) {
-                        <span class="ml-2">· {{ formatSize(modelo.file_size) }}</span>
-                      }
-                    </div>
-                    <a
-                      [href]="modelo.file_url"
-                      download
-                      class="inline-flex items-center gap-1.5 rounded-lg bg-utp-blue px-3 py-1.5 text-xs font-semibold text-white hover:bg-utp-blue-dark transition-colors"
-                      title="Descargar modelo .glb"
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  @for (modelo of grupo.models; track modelo.id) {
+                    <article
+                      (click)="abrirDetalle(modelo)"
+                      class="cursor-pointer rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl hover:border-utp-blue/20 transition-all duration-300 flex flex-col group"
                     >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Descargar
-                    </a>
-                  </div>
+                      <div class="h-56 bg-gradient-to-b from-gray-800 to-gray-900 relative">
+                        <model-viewer
+                          [attr.src]="modelo.file_url"
+                          auto-rotate
+                          camera-controls
+                          shadow-intensity="1"
+                          environment-image="neutral"
+                          class="w-full h-full"
+                          style="--poster-color: transparent;"
+                        ></model-viewer>
+                        <div class="absolute inset-0 bg-utp-blue/0 group-hover:bg-utp-blue/5 transition-colors pointer-events-none rounded-t-2xl"></div>
+                      </div>
+                      <div class="p-4 flex flex-col flex-1">
+                        <h3 class="text-base font-bold text-gray-900 leading-snug group-hover:text-utp-blue transition-colors">{{ modelo.name }}</h3>
+                        @if (modelo.reference_code) {
+                          <p class="mt-1 mb-2 text-xs font-mono text-utp-blue">Ref. {{ modelo.reference_code }}</p>
+                        }
+                        @if (modelo.description) {
+                          <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ modelo.description }}</p>
+                        }
+                        <div class="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
+                          <div class="text-xs text-gray-400">
+                            {{ modelo.author }}
+                            @if (modelo.file_size) {
+                              <span class="ml-2">· {{ formatSize(modelo.file_size) }}</span>
+                            }
+                          </div>
+                          <span class="inline-flex items-center gap-1 text-xs font-medium text-utp-blue opacity-0 group-hover:opacity-100 transition-opacity">
+                            Ver detalle
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  }
                 </div>
-              </article>
+              </section>
             }
           </div>
         }
@@ -116,4 +124,99 @@
     </section>
   </main>
   <app-footer />
+
+  @if (modeloSeleccionado(); as m) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" (click)="cerrarDetalle()">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" (click)="$event.stopPropagation()">
+        <!-- Header con botón cerrar -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div class="flex flex-wrap items-center gap-3">
+            <h2 class="text-xl font-bold text-gray-900">{{ m.name }}</h2>
+            <span class="inline-flex items-center rounded-full bg-utp-blue/10 text-utp-blue px-3 py-1 text-xs font-semibold">
+              {{ m.category }}
+            </span>
+            @if (m.reference_code) {
+              <span class="inline-flex items-center rounded-md bg-gray-100 text-gray-700 px-2.5 py-1 text-xs font-mono">
+                Ref. {{ m.reference_code }}
+              </span>
+            }
+          </div>
+          <button
+            type="button"
+            (click)="cerrarDetalle()"
+            class="rounded-full p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            title="Cerrar"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Visor 3D grande -->
+        <div class="h-[50vh] bg-gradient-to-b from-gray-800 to-gray-900 relative">
+          <model-viewer
+            [attr.src]="m.file_url"
+            auto-rotate
+            camera-controls
+            shadow-intensity="1"
+            environment-image="neutral"
+            class="w-full h-full"
+            style="--poster-color: transparent;"
+          ></model-viewer>
+        </div>
+
+        <!-- Info y descarga -->
+        <div class="px-6 py-5 flex flex-col sm:flex-row sm:items-start gap-4">
+          <div class="flex-1 min-w-0">
+            @if (m.description) {
+              <p class="text-sm text-gray-700 mb-3">{{ m.description }}</p>
+            }
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+              @if (m.reference_code) {
+                <span class="flex items-center gap-1.5 text-gray-700">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  <span class="font-semibold text-gray-600">Código de referencia:</span>
+                  <span class="font-mono font-medium text-utp-blue">{{ m.reference_code }}</span>
+                </span>
+              }
+              <span class="flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {{ m.author }}
+              </span>
+              @if (m.file_size) {
+                <span class="flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {{ formatSize(m.file_size) }}
+                </span>
+              }
+              <span class="flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {{ m.created_at | date:'d MMM y, HH:mm' }}
+              </span>
+            </div>
+          </div>
+          <a
+            [href]="m.file_url"
+            download
+            class="shrink-0 inline-flex items-center gap-2 rounded-lg bg-utp-blue px-5 py-2.5 text-sm font-semibold text-white hover:bg-utp-blue-dark transition-colors shadow-md"
+            title="Descargar modelo .glb"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Descargar .glb
+          </a>
+        </div>
+      </div>
+    </div>
+  }
 </div>

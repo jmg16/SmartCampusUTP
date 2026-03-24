@@ -56,6 +56,7 @@ export class Libreria3dDashboardComponent implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(255)]],
     category: ['', [Validators.required, Validators.maxLength(100)]],
     customCategory: [''],
+    reference_code: ['', [Validators.required, Validators.maxLength(100)]],
     description: [''],
     author: ['', [Validators.required, Validators.maxLength(255)]],
   });
@@ -128,6 +129,7 @@ export class Libreria3dDashboardComponent implements OnInit {
       name: modelo.name,
       category: catInList ? modelo.category : '__nueva__',
       customCategory: catInList ? '' : modelo.category,
+      reference_code: modelo.reference_code ?? '',
       description: modelo.description ?? '',
       author: modelo.author,
     });
@@ -145,6 +147,7 @@ export class Libreria3dDashboardComponent implements OnInit {
       name: '',
       category: '',
       customCategory: '',
+      reference_code: '',
       description: '',
       author: this.auth.getUsuarioActual() ?? '',
     });
@@ -168,9 +171,15 @@ export class Libreria3dDashboardComponent implements OnInit {
       }
     }
 
+    const refRaw = String(value.reference_code ?? '').trim();
+    if (!refRaw) {
+      this.error.set('El código de referencia es obligatorio.');
+      return;
+    }
     const payload = {
       name: String(value.name ?? '').trim(),
       category,
+      reference_code: refRaw,
       description: value.description ? String(value.description).trim() : undefined,
       author: String(value.author ?? '').trim(),
     };

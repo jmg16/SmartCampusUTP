@@ -9,6 +9,14 @@ import {
 
 const STORAGE_KEY = 'smartcampus.bitacora.token';
 
+/** Unifica reference_code / referenceCode que pueda devolver el API o un proxy. */
+function normalizeModelo3dRow(row: Modelo3D): Modelo3D {
+  const r = row as unknown as Record<string, unknown>;
+  const raw = r['reference_code'] ?? r['referenceCode'] ?? r['referencecode'];
+  const ref = raw != null && String(raw).trim() ? String(raw).trim() : null;
+  return { ...row, reference_code: ref };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -29,7 +37,7 @@ export class Modelos3dService {
     if (category) params = params.set('category', category);
     return this.http
       .get<Modelo3DListResponse>('/api/modelos3d', { params })
-      .pipe(map((resp) => resp.datos ?? []));
+      .pipe(map((resp) => (resp.datos ?? []).map((m) => normalizeModelo3dRow(m))));
   }
 
   categorias(): Observable<string[]> {
@@ -41,13 +49,17 @@ export class Modelos3dService {
   getById(id: number): Observable<Modelo3D> {
     return this.http
       .get<{ ok: boolean; dato: Modelo3D }>(`/api/modelos3d/${id}`)
-      .pipe(map((resp) => resp.dato));
+      .pipe(map((resp) => normalizeModelo3dRow(resp.dato)));
   }
 
-  create(data: { name: string; category: string; description?: string; author: string }, file: File): Observable<Modelo3D> {
+  create(
+    data: { name: string; category: string; reference_code: string; description?: string; author: string },
+    file: File
+  ): Observable<Modelo3D> {
     const form = new FormData();
     form.append('name', data.name);
     form.append('category', data.category);
+    form.append('reference_code', data.reference_code.trim());
     if (data.description) form.append('description', data.description);
     form.append('author', data.author);
     form.append('file', file);
@@ -55,15 +67,18 @@ export class Modelos3dService {
       .post<{ ok: boolean; dato: Modelo3D }>('/api/modelos3d', form, {
         headers: this.authHeaders(),
       })
-      .pipe(map((resp) => resp.dato));
+      .pipe(map((resp) => normalizeModelo3dRow(resp.dato)));
   }
 
-  update(id: number, data: { name: string; category: string; description?: string; author: string }): Observable<Modelo3D> {
+  update(
+    id: number,
+    data: { name: string; category: string; reference_code: string; description?: string; author: string }
+  ): Observable<Modelo3D> {
     return this.http
       .put<{ ok: boolean; dato: Modelo3D }>(`/api/modelos3d/${id}`, data, {
         headers: this.authHeaders(),
       })
-      .pipe(map((resp) => resp.dato));
+      .pipe(map((resp) => normalizeModelo3dRow(resp.dato)));
   }
 
   replaceFile(id: number, file: File): Observable<Modelo3D> {
@@ -73,7 +88,7 @@ export class Modelos3dService {
       .put<{ ok: boolean; dato: Modelo3D }>(`/api/modelos3d/${id}/file`, form, {
         headers: this.authHeaders(),
       })
-      .pipe(map((resp) => resp.dato));
+      .pipe(map((resp) => normalizeModelo3dRow(resp.dato)));
   }
 
   delete(id: number): Observable<void> {

@@ -20,8 +20,8 @@
                   <button
                     type="button"
                     class="inline-flex items-center gap-2 text-gray-600 hover:text-utp-blue font-medium transition-colors"
-                    (click)="togglePublicaciones()"
-                    [attr.aria-expanded]="publicacionesOpen"
+                    (click)="toggleDropdown(link.label)"
+                    [attr.aria-expanded]="isDropdownOpen(link.label)"
                     aria-haspopup="menu"
                   >
                     {{ link.label }}
@@ -30,7 +30,7 @@
                     </svg>
                   </button>
 
-                  @if (publicacionesOpen) {
+                  @if (isDropdownOpen(link.label)) {
                     <div
                       class="absolute left-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden"
                       role="menu"
@@ -106,8 +106,8 @@
                 <button
                   type="button"
                   class="w-full flex items-center justify-between py-2 px-3 rounded-lg text-gray-600 hover:bg-utp-blue hover:text-white font-medium transition-colors"
-                  (click)="togglePublicaciones()"
-                  [attr.aria-expanded]="publicacionesOpen"
+                  (click)="toggleDropdown(link.label)"
+                  [attr.aria-expanded]="isDropdownOpen(link.label)"
                 >
                   <span>{{ link.label }}</span>
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -115,7 +115,7 @@
                   </svg>
                 </button>
 
-                @if (publicacionesOpen) {
+                @if (isDropdownOpen(link.label)) {
                   <ul class="mt-1 ml-3 flex flex-col gap-1">
                     @for (child of link.children; track child.label) {
                       <li>
