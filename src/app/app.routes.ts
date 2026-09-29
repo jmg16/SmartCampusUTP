@@ -95,6 +95,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/salones/:slug',
+    canActivate: [bitacoraAuthGuard],
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/salon-admin/salon-admin.component').then(
+        (m) => m.SalonAdminComponent
+      ),
+  },
+  {
     path: 'admin/salones',
     canActivate: [bitacoraAuthGuard],
     loadComponent: () =>

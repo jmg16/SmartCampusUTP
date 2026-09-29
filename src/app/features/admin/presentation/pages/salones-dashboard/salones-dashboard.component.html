@@ -113,7 +113,7 @@
               <p class="mt-1 text-sm text-gray-600">{{ salon.edificio }}</p>
               <p class="mt-2 text-xs text-gray-500">Capacidad: {{ salon.capacidad }} personas</p>
               <div class="mt-4 flex justify-end gap-3 border-t border-gray-100 pt-3 text-sm">
-                <a [routerLink]="['/salones', salon.slug]" class="font-medium text-utp-blue hover:underline">Entrar al salón</a>
+                <a [routerLink]="['/admin/salones', salon.slug]" class="font-medium text-utp-blue hover:underline">Mobiliario y fotos</a>
                 <button type="button" (click)="seleccionar(salon)" class="font-medium text-utp-blue hover:underline">Editar</button>
                 <button type="button" (click)="eliminar(salon)" class="font-medium text-red-600 hover:underline">Eliminar</button>
               </div>
