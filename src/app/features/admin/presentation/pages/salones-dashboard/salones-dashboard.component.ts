@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
-import { Salon, SalonPayload } from '../../../../../shared/models/salon.model';
+import { Mobiliario, Salon, SalonPayload } from '../../../../../shared/models/salon.model';
 
 @Component({
   selector: 'app-salones-dashboard',
@@ -24,6 +24,21 @@ export class SalonesDashboardComponent implements OnInit {
   success = signal<string | null>(null);
 
   readonly tipos = ['Aula', 'Laboratorio', 'Auditorio', 'Taller', 'Sala de reuniones'];
+  readonly catalogoMobiliario = [
+    'Silla',
+    'Mesa',
+    'Escritorio',
+    'Pupitre',
+    'Computadora',
+    'Proyector',
+    'Pizarra',
+    'Pantalla',
+    'Aire acondicionado',
+    'Impresora',
+  ];
+  mobiliario = signal<Mobiliario[]>([]);
+  pieza = this.catalogoMobiliario[0];
+  cantidadPieza = 1;
   readonly facultades = [
     'Facultad de Ingeniería Civil',
     'Facultad de Ingeniería Eléctrica',
@@ -76,6 +91,7 @@ export class SalonesDashboardComponent implements OnInit {
       descripcion: salon.descripcion,
       caracteristicas: salon.caracteristicas.join('\n'),
     });
+    this.mobiliario.set([...(salon.mobiliario ?? [])]);
     this.error.set(null);
     this.success.set(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -92,6 +108,30 @@ export class SalonesDashboardComponent implements OnInit {
       descripcion: '',
       caracteristicas: '',
     });
+    this.mobiliario.set([]);
+    this.pieza = this.catalogoMobiliario[0];
+    this.cantidadPieza = 1;
+  }
+
+  agregarMobiliario(): void {
+    const nombre = this.pieza.trim();
+    const cantidad = Number(this.cantidadPieza);
+    if (!nombre || !Number.isInteger(cantidad) || cantidad < 1) return;
+
+    const actual = this.mobiliario();
+    const existente = actual.find((item) => item.nombre === nombre);
+    this.mobiliario.set(
+      existente
+        ? actual.map((item) =>
+            item.nombre === nombre ? { ...item, cantidad: item.cantidad + cantidad } : item
+          )
+        : [...actual, { nombre, cantidad }]
+    );
+    this.cantidadPieza = 1;
+  }
+
+  quitarMobiliario(nombre: string): void {
+    this.mobiliario.set(this.mobiliario().filter((item) => item.nombre !== nombre));
   }
 
   enviar(): void {
@@ -108,6 +148,7 @@ export class SalonesDashboardComponent implements OnInit {
         .split(/[\n,]+/)
         .map((item) => item.trim())
         .filter(Boolean),
+      mobiliario: this.mobiliario(),
     };
 
     this.guardando.set(true);

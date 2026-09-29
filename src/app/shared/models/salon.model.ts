@@ -1,3 +1,8 @@
+export interface Mobiliario {
+  nombre: string;
+  cantidad: number;
+}
+
 export interface Salon {
   id: number;
   slug: string;
@@ -8,6 +13,7 @@ export interface Salon {
   tipo: string;
   descripcion: string;
   caracteristicas: string[];
+  mobiliario: Mobiliario[];
   created_at?: string;
   updated_at?: string;
 }
