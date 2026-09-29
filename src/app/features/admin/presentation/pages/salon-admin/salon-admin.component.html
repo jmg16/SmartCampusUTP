@@ -27,15 +27,27 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 class="text-lg font-bold text-gray-900">Mobiliario</h2>
           <p class="mt-1 text-sm text-gray-600">Elige el objeto, la cantidad y el número de serie.</p>
-          <div class="mt-4 flex flex-col gap-3 sm:flex-row">
-            <select [value]="pieza" (change)="pieza = $any($event.target).value" aria-label="Objeto" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
-              @for (objeto of catalogoMobiliario; track objeto) {
-                <option [value]="objeto">{{ objeto }}</option>
-              }
-            </select>
-            <input type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" aria-label="Cantidad" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20 sm:w-28" />
-            <input type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" aria-label="Número de serie" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-            <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
+          <div class="mt-4 grid gap-3 sm:grid-cols-[1fr_7rem_1fr_auto] sm:items-end">
+            <div>
+              <label for="objeto" class="mb-1 block text-sm font-medium text-gray-700">Objeto *</label>
+              <select id="objeto" [value]="pieza" (change)="pieza = $any($event.target).value" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
+                @for (objeto of catalogoMobiliario; track objeto) {
+                  <option [value]="objeto">{{ objeto }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label for="cantidad" class="mb-1 block text-sm font-medium text-gray-700">Cantidad *</label>
+              <input id="cantidad" type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <div>
+              <label for="serie" class="mb-1 block text-sm font-medium text-gray-700">Número de serie *</label>
+              <input id="serie" type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               {{ guardandoMobiliario() ? 'Guardando...' : 'Agregar' }}
             </button>
           </div>
@@ -62,11 +74,18 @@
             </div>
             <div class="flex flex-col gap-2 sm:flex-row">
               <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white hover:bg-utp-blue/90">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 0 1 2-2h2l1-2h8l1 2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+                  <circle cx="12" cy="13" r="3.5" stroke-width="2" />
+                </svg>
                 Tomar foto
                 <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="agregarFoto($event)" />
               </label>
               <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-utp-blue px-5 py-3 font-semibold text-utp-blue hover:bg-utp-blue/5">
-                Subir foto
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1M12 12V4m0 0 4 4m-4-4L8 8" />
+                </svg>
+                Subir imagen
                 <input type="file" accept="image/*" class="sr-only" (change)="agregarFoto($event)" />
               </label>
             </div>

@@ -91,102 +91,6 @@
       </div>
     </section>
 
-    <section id="inventario" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-      <div class="bg-gradient-to-r from-utp-blue to-utp-blue-dark px-5 py-4 text-white">
-        <h2 class="font-semibold">Mobiliario y fotografías</h2>
-        <p class="mt-1 text-sm text-blue-100">Elige el salón y registra los objetos y las fotos desde aquí.</p>
-      </div>
-      <div class="space-y-6 p-5 sm:p-6">
-        <div>
-          <label for="salon-inventario" class="mb-1 block text-sm font-medium text-gray-700">Salón</label>
-          <select id="salon-inventario" [value]="salonActivo()?.id ?? ''" (change)="elegirSalon($any($event.target).value)" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
-            <option value="">Selecciona un salón</option>
-            @for (salon of datos(); track salon.id) {
-              <option [value]="salon.id">{{ salon.nombre }}</option>
-            }
-          </select>
-        </div>
-
-        <div>
-          <h3 class="text-base font-bold text-gray-900">Mobiliario{{ salonActivo() ? ' de ' + salonActivo()!.nombre : '' }}</h3>
-          <div class="mt-4 grid gap-3 sm:grid-cols-[1fr_7rem_1fr_auto] sm:items-end">
-            <div>
-              <label for="objeto" class="mb-1 block text-sm font-medium text-gray-700">Objeto *</label>
-              <select id="objeto" [value]="pieza" (change)="pieza = $any($event.target).value" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
-                @for (objeto of catalogoMobiliario; track objeto) {
-                  <option [value]="objeto">{{ objeto }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label for="cantidad" class="mb-1 block text-sm font-medium text-gray-700">Cantidad *</label>
-              <input id="cantidad" type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-            </div>
-            <div>
-              <label for="serie" class="mb-1 block text-sm font-medium text-gray-700">Número de serie *</label>
-              <input id="serie" type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-            </div>
-            <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
-              {{ guardandoMobiliario() ? 'Guardando...' : 'Agregar' }}
-            </button>
-          </div>
-          @if (salonActivo(); as espacio) {
-            @if (espacio.mobiliario.length) {
-              <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                @for (item of espacio.mobiliario; track item.serie; let i = $index) {
-                  <li class="flex items-start justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-sm">
-                    <div>
-                      <p class="font-medium text-gray-800">{{ item.nombre }} <span class="text-utp-blue">× {{ item.cantidad }}</span></p>
-                      <p class="mt-1 text-xs text-gray-500">Serie {{ item.serie }}</p>
-                    </div>
-                    <button type="button" (click)="quitarMobiliario(i)" class="text-gray-400 hover:text-red-600" [attr.aria-label]="'Quitar ' + item.nombre">×</button>
-                  </li>
-                }
-              </ul>
-            }
-          }
-        </div>
-
-        <div class="border-t border-gray-100 pt-6">
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 class="text-base font-bold text-gray-900">Fotografías</h3>
-              <p class="mt-1 text-sm text-gray-600">Tomar foto abre la cámara. Subir imagen usa un archivo del dispositivo.</p>
-            </div>
-            <div class="flex flex-col gap-2 sm:flex-row">
-              <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white hover:bg-utp-blue/90">
-                Tomar foto
-                <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="agregarFoto($event)" />
-              </label>
-              <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-utp-blue px-5 py-3 font-semibold text-utp-blue hover:bg-utp-blue/5">
-                Subir imagen
-                <input type="file" accept="image/*" class="sr-only" (change)="agregarFoto($event)" />
-              </label>
-            </div>
-          </div>
-          @if (guardandoFoto()) {
-            <p class="mt-4 text-sm text-gray-500">Guardando fotografía...</p>
-          }
-          @if (salonActivo(); as espacio) {
-            @if (espacio.fotos.length) {
-              <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @for (foto of espacio.fotos; track foto) {
-                  <figure class="relative overflow-hidden rounded-xl bg-gray-100">
-                    <img [src]="foto" alt="Fotografía del salón" class="h-56 w-full object-cover" />
-                    <button type="button" (click)="eliminarFoto(foto)" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600" aria-label="Eliminar fotografía">×</button>
-                  </figure>
-                }
-              </div>
-            }
-          }
-        </div>
-
-        @if (mensajeInventario()) {
-          <p class="text-sm text-gray-700">{{ mensajeInventario() }}</p>
-        }
-      </div>
-    </section>
-
     <section>
       <div class="mb-4 flex items-center justify-between gap-3">
         <div>
@@ -208,10 +112,25 @@
               <h3 class="mt-1 font-bold text-gray-900">{{ salon.nombre }}</h3>
               <p class="mt-1 text-sm text-gray-600">{{ salon.edificio }}</p>
               <p class="mt-2 text-xs text-gray-500">Capacidad: {{ salon.capacidad }} personas</p>
-              <div class="mt-4 flex justify-end gap-3 border-t border-gray-100 pt-3 text-sm">
-                <button type="button" (click)="abrirInventario(salon)" class="font-medium text-utp-blue hover:underline">Mobiliario y fotos</button>
-                <button type="button" (click)="seleccionar(salon)" class="font-medium text-utp-blue hover:underline">Editar</button>
-                <button type="button" (click)="eliminar(salon)" class="font-medium text-red-600 hover:underline">Eliminar</button>
+              <div class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3 text-sm">
+                <a [routerLink]="['/admin/salones', salon.slug]" class="inline-flex items-center gap-1.5 rounded-lg bg-utp-blue px-3 py-1.5 font-semibold text-white hover:bg-utp-blue/90">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10h16M4 6h16M8 14h8M6 18h12" />
+                  </svg>
+                  Mobiliario
+                </a>
+                <button type="button" (click)="seleccionar(salon)" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                  </svg>
+                  Editar
+                </button>
+                <button type="button" (click)="eliminar(salon)" class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 font-medium text-red-600 hover:bg-red-50">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                  </svg>
+                  Eliminar
+                </button>
               </div>
             </article>
           }
