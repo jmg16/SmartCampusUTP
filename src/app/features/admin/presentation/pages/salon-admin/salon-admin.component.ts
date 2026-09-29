@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
@@ -10,7 +10,7 @@ import { Mobiliario, Salon } from '../../../../../shared/models/salon.model';
   imports: [RouterLink],
   templateUrl: './salon-admin.component.html',
 })
-export class SalonAdminComponent implements OnInit {
+export class SalonAdminComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private salonesService = inject(SalonesService);
@@ -37,6 +37,8 @@ export class SalonAdminComponent implements OnInit {
   pieza = this.catalogoMobiliario[0];
   cantidadPieza = 1;
   seriePieza = '';
+  vistaPrevia = signal<string | null>(null);
+  private fotoPendiente: File | null = null;
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug');
@@ -75,17 +77,30 @@ export class SalonAdminComponent implements OnInit {
     this.guardarMobiliario(espacio.mobiliario.filter((_, posicion) => posicion !== indice));
   }
 
-  agregarFoto(event: Event): void {
+  elegirFoto(event: Event): void {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
     input.value = '';
+    if (!archivo) return;
+    this.limpiarVistaPrevia();
+    this.fotoPendiente = archivo;
+    this.vistaPrevia.set(URL.createObjectURL(archivo));
+    this.mensaje.set(null);
+  }
+
+  guardarFoto(): void {
     const espacio = this.salon();
-    if (!archivo || !espacio) return;
+    const archivo = this.fotoPendiente;
+    if (!espacio || !archivo || this.guardandoFoto()) {
+      this.mensaje.set('Toma o sube una imagen antes de guardar.');
+      return;
+    }
     this.guardandoFoto.set(true);
     this.mensaje.set(null);
     this.salonesService.subirFoto(espacio.id, archivo).subscribe({
       next: (salon) => {
         this.asignar(salon);
+        this.limpiarVistaPrevia();
         this.guardandoFoto.set(false);
         this.mensaje.set('Fotografía guardada.');
       },
@@ -103,6 +118,17 @@ export class SalonAdminComponent implements OnInit {
       next: (salon) => this.asignar(salon),
       error: (err) => this.mensaje.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
     });
+  }
+
+  ngOnDestroy(): void {
+    this.limpiarVistaPrevia();
+  }
+
+  private limpiarVistaPrevia(): void {
+    const previa = this.vistaPrevia();
+    if (previa) URL.revokeObjectURL(previa);
+    this.vistaPrevia.set(null);
+    this.fotoPendiente = null;
   }
 
   cerrarSesion(): void {

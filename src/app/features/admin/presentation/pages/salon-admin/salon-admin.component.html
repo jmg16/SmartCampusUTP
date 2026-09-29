@@ -46,9 +46,10 @@
             </div>
             <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-8H7v8M7 3v5h8" />
               </svg>
-              {{ guardandoMobiliario() ? 'Guardando...' : 'Agregar' }}
+              {{ guardandoMobiliario() ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
           @if (espacio.mobiliario.length) {
@@ -79,19 +80,29 @@
                   <circle cx="12" cy="13" r="3.5" stroke-width="2" />
                 </svg>
                 Tomar foto
-                <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="agregarFoto($event)" />
+                <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="elegirFoto($event)" />
               </label>
               <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-utp-blue px-5 py-3 font-semibold text-utp-blue hover:bg-utp-blue/5">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1M12 12V4m0 0 4 4m-4-4L8 8" />
                 </svg>
                 Subir imagen
-                <input type="file" accept="image/*" class="sr-only" (change)="agregarFoto($event)" />
+                <input type="file" accept="image/*" class="sr-only" (change)="elegirFoto($event)" />
               </label>
+              <button type="button" (click)="guardarFoto()" [disabled]="guardandoFoto() || !vistaPrevia()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-8H7v8M7 3v5h8" />
+                </svg>
+                {{ guardandoFoto() ? 'Guardando...' : 'Guardar' }}
+              </button>
             </div>
           </div>
-          @if (guardandoFoto()) {
-            <p class="mt-4 text-sm text-gray-500">Guardando fotografía...</p>
+          @if (vistaPrevia(); as previa) {
+            <figure class="mt-6 max-w-sm overflow-hidden rounded-xl bg-gray-100">
+              <img [src]="previa" alt="Vista previa de la fotografía" class="h-56 w-full object-cover" />
+              <figcaption class="px-3 py-2 text-sm text-gray-600">Vista previa. Pulsa Guardar para conservarla.</figcaption>
+            </figure>
           }
           @if (espacio.fotos.length) {
             <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
