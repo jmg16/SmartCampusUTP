@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
-import { Salon, SalonPayload } from '../../../../../shared/models/salon.model';
+import { Mobiliario, Salon, SalonPayload } from '../../../../../shared/models/salon.model';
 
 @Component({
   selector: 'app-salones-dashboard',
@@ -18,11 +18,30 @@ export class SalonesDashboardComponent implements OnInit {
   private router = inject(Router);
 
   datos = signal<Salon[]>([]);
+  salonActivo = signal<Salon | null>(null);
   cargandoLista = signal(false);
   guardando = signal(false);
+  guardandoMobiliario = signal(false);
+  guardandoFoto = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
+  mensajeInventario = signal<string | null>(null);
+  cantidadPieza = 1;
+  seriePieza = '';
 
+  readonly catalogoMobiliario = [
+    'Silla',
+    'Mesa',
+    'Escritorio',
+    'Pupitre',
+    'Computadora',
+    'Proyector',
+    'Pizarra',
+    'Pantalla',
+    'Aire acondicionado',
+    'Impresora',
+  ];
+  pieza = this.catalogoMobiliario[0];
   readonly tipos = ['Aula', 'Laboratorio', 'Auditorio', 'Taller', 'Sala de reuniones'];
   readonly facultades = [
     'Facultad de Ingeniería Civil',
@@ -55,6 +74,10 @@ export class SalonesDashboardComponent implements OnInit {
     this.salonesService.list().subscribe({
       next: (salones) => {
         this.datos.set(salones);
+        const activo = this.salonActivo();
+        if (activo) {
+          this.salonActivo.set(salones.find((salon) => salon.id === activo.id) ?? null);
+        }
         this.cargandoLista.set(false);
       },
       error: (err) => {
@@ -138,6 +161,99 @@ export class SalonesDashboardComponent implements OnInit {
       },
       error: (err) => this.error.set(err?.error?.mensaje || 'No se pudo eliminar el salón.'),
     });
+  }
+
+  elegirSalon(id: string): void {
+    const salon = this.datos().find((item) => item.id === Number(id)) ?? null;
+    this.abrirInventario(salon);
+  }
+
+  abrirInventario(salon: Salon | null): void {
+    this.mensajeInventario.set(null);
+    this.salonActivo.set(
+      salon
+        ? { ...salon, mobiliario: salon.mobiliario ?? [], fotos: salon.fotos ?? [] }
+        : null,
+    );
+    document.getElementById('inventario')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  agregarMobiliario(): void {
+    const espacio = this.salonActivo();
+    const nombre = this.pieza.trim();
+    const serie = this.seriePieza.trim();
+    const cantidad = Number(this.cantidadPieza);
+    if (!espacio || !nombre || !serie || !Number.isInteger(cantidad) || cantidad < 1) {
+      this.mensajeInventario.set('Indica el objeto, la cantidad y el número de serie.');
+      return;
+    }
+    if (espacio.mobiliario.some((item) => item.serie.toLowerCase() === serie.toLowerCase())) {
+      this.mensajeInventario.set('Ese número de serie ya está registrado en este salón.');
+      return;
+    }
+    this.guardarMobiliario([...espacio.mobiliario, { nombre, cantidad, serie }]);
+  }
+
+  quitarMobiliario(indice: number): void {
+    const espacio = this.salonActivo();
+    if (!espacio) return;
+    this.guardarMobiliario(espacio.mobiliario.filter((_, posicion) => posicion !== indice));
+  }
+
+  agregarFoto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    input.value = '';
+    const espacio = this.salonActivo();
+    if (!archivo || !espacio) return;
+    this.guardandoFoto.set(true);
+    this.mensajeInventario.set(null);
+    this.salonesService.subirFoto(espacio.id, archivo).subscribe({
+      next: (salon) => {
+        this.asignarInventario(salon);
+        this.guardandoFoto.set(false);
+        this.mensajeInventario.set('Fotografía guardada.');
+      },
+      error: (err) => {
+        this.guardandoFoto.set(false);
+        this.mensajeInventario.set(err?.error?.mensaje || 'No se pudo guardar la fotografía.');
+      },
+    });
+  }
+
+  eliminarFoto(url: string): void {
+    const espacio = this.salonActivo();
+    if (!espacio) return;
+    this.salonesService.eliminarFoto(espacio.id, url).subscribe({
+      next: (salon) => this.asignarInventario(salon),
+      error: (err) => this.mensajeInventario.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
+    });
+  }
+
+  private guardarMobiliario(mobiliario: Mobiliario[]): void {
+    const espacio = this.salonActivo();
+    if (!espacio || this.guardandoMobiliario()) return;
+    this.guardandoMobiliario.set(true);
+    this.mensajeInventario.set(null);
+    this.salonesService.guardarMobiliario(espacio.id, mobiliario).subscribe({
+      next: (salon) => {
+        this.asignarInventario(salon);
+        this.cantidadPieza = 1;
+        this.seriePieza = '';
+        this.guardandoMobiliario.set(false);
+        this.mensajeInventario.set('Mobiliario guardado.');
+      },
+      error: (err) => {
+        this.guardandoMobiliario.set(false);
+        this.mensajeInventario.set(err?.error?.mensaje || 'No se pudo guardar el mobiliario.');
+      },
+    });
+  }
+
+  private asignarInventario(salon: Salon): void {
+    const normalizado = { ...salon, mobiliario: salon.mobiliario ?? [], fotos: salon.fotos ?? [] };
+    this.salonActivo.set(normalizado);
+    this.datos.update((lista) => lista.map((item) => (item.id === salon.id ? normalizado : item)));
   }
 
   cerrarSesion(): void {
