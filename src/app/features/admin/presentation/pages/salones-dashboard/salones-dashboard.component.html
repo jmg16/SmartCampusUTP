@@ -40,17 +40,27 @@
             </div>
             <div>
               <label for="tipo" class="mb-1 block text-sm font-medium text-gray-700">Tipo *</label>
-              <input id="tipo" type="text" formControlName="tipo" list="tipos-salon" placeholder="Laboratorio" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-              <datalist id="tipos-salon">
-                <option value="Laboratorio"></option>
-                <option value="Aula"></option>
-                <option value="Auditorio"></option>
-                <option value="Taller"></option>
-              </datalist>
+              <select id="tipo" formControlName="tipo" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
+                <option value="" disabled>Selecciona un tipo</option>
+                @for (tipo of tipos; track tipo) {
+                  <option [value]="tipo">{{ tipo }}</option>
+                }
+                @if (form.controls.tipo.value && !tipos.includes(form.controls.tipo.value)) {
+                  <option [value]="form.controls.tipo.value">{{ form.controls.tipo.value }}</option>
+                }
+              </select>
             </div>
             <div>
               <label for="edificio" class="mb-1 block text-sm font-medium text-gray-700">Facultad o edificio *</label>
-              <input id="edificio" type="text" formControlName="edificio" placeholder="Facultad de Sistemas" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+              <select id="edificio" formControlName="edificio" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
+                <option value="" disabled>Selecciona una facultad</option>
+                @for (facultad of facultades; track facultad) {
+                  <option [value]="facultad">{{ facultad }}</option>
+                }
+                @if (form.controls.edificio.value && !facultades.includes(form.controls.edificio.value)) {
+                  <option [value]="form.controls.edificio.value">{{ form.controls.edificio.value }}</option>
+                }
+              </select>
             </div>
             <div>
               <label for="ubicacion" class="mb-1 block text-sm font-medium text-gray-700">Piso o ubicación *</label>

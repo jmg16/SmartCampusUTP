@@ -23,10 +23,19 @@ export class SalonesDashboardComponent implements OnInit {
   error = signal<string | null>(null);
   success = signal<string | null>(null);
 
+  readonly tipos = ['Aula', 'Laboratorio', 'Auditorio', 'Taller', 'Sala de reuniones'];
+  readonly facultades = [
+    'Facultad de Ingeniería Civil',
+    'Facultad de Ingeniería Eléctrica',
+    'Facultad de Sistemas',
+    'Facultad de Ciencia y Tecnología',
+    'Edificio Académico',
+  ];
+
   form = this.fb.group({
     id: [null as number | null],
     nombre: ['', [Validators.required, Validators.maxLength(255)]],
-    tipo: ['Laboratorio', [Validators.required, Validators.maxLength(100)]],
+    tipo: ['', [Validators.required, Validators.maxLength(100)]],
     edificio: ['', [Validators.required, Validators.maxLength(255)]],
     ubicacion: ['', [Validators.required, Validators.maxLength(255)]],
     capacidad: [null as number | null, [Validators.required, Validators.min(1)]],
@@ -76,7 +85,7 @@ export class SalonesDashboardComponent implements OnInit {
     this.form.reset({
       id: null,
       nombre: '',
-      tipo: 'Laboratorio',
+      tipo: '',
       edificio: '',
       ubicacion: '',
       capacidad: null,
