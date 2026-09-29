@@ -41,6 +41,11 @@ if (!fs.existsSync(UPLOADS_BITACORA_DIR)) {
 }
 
 // Carpeta para imágenes de eventos (crear si no existe)
+const UPLOADS_SALONES_DIR = path.join(__dirname, 'uploads', 'salones');
+if (!fs.existsSync(UPLOADS_SALONES_DIR)) {
+  fs.mkdirSync(UPLOADS_SALONES_DIR, { recursive: true });
+}
+
 const UPLOADS_EVENTOS_DIR = path.join(__dirname, 'uploads', 'eventos');
 if (!fs.existsSync(UPLOADS_EVENTOS_DIR)) {
   fs.mkdirSync(UPLOADS_EVENTOS_DIR, { recursive: true });
@@ -81,6 +86,21 @@ const storageEventos = multer.diskStorage({
       (path.extname(file.originalname) || '.jpg').toLowerCase().replace(/[^a-z]/g, '') || 'jpg';
     const safe = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
     cb(null, safe);
+  },
+});
+
+const storageSalones = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_SALONES_DIR),
+  filename: (_req, file, cb) => {
+    const ext = (path.extname(file.originalname) || '.jpg').toLowerCase().replace(/[^a-z.]/g, '') || '.jpg';
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext.startsWith('.') ? ext : `.${ext}`}`);
+  },
+});
+const uploadSalonFoto = multer({
+  storage: storageSalones,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
   },
 });
 
@@ -151,6 +171,7 @@ app.use(express.json());
 app.use('/api/bitacora/uploads', express.static(UPLOADS_BITACORA_DIR));
 
 // Servir imágenes de eventos (URL pública para el front)
+app.use('/api/salones/uploads', express.static(UPLOADS_SALONES_DIR));
 app.use('/api/eventos/uploads', express.static(UPLOADS_EVENTOS_DIR));
 
 // Servir archivos de modelos 3D (.glb)
@@ -346,6 +367,10 @@ async function ensureSalonesTable() {
       ALTER TABLE campus_rooms
       ADD COLUMN IF NOT EXISTS furniture JSONB NOT NULL DEFAULT '[]'::jsonb
     `);
+    await bitacoraPool.query(`
+      ALTER TABLE campus_rooms
+      ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb
+    `);
     await bitacoraPool.query(
       `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features)
        VALUES
@@ -402,7 +427,7 @@ app.get('/api/health', (req, res) => {
 const SALON_SELECT = `
   SELECT id, slug, name AS nombre, type AS tipo, building AS edificio,
          location AS ubicacion, capacity AS capacidad, description AS descripcion,
-         features AS caracteristicas, furniture AS mobiliario, created_at, updated_at
+         features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at
   FROM campus_rooms
 `;
 
@@ -500,7 +525,7 @@ app.post('/api/salones', requireBitacoraAuth, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
                  location AS ubicacion, capacity AS capacidad, description AS descripcion,
-                 features AS caracteristicas, furniture AS mobiliario, created_at, updated_at`,
+                 features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
       [slug, data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas]
     );
     res.status(201).json({ ok: true, dato: result.rows[0] });
@@ -531,7 +556,7 @@ app.put('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
        WHERE id = $8
        RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
                  location AS ubicacion, capacity AS capacidad, description AS descripcion,
-                 features AS caracteristicas, furniture AS mobiliario, created_at, updated_at`,
+                 features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
       [data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, id]
     );
     if (result.rows.length === 0) {
@@ -561,7 +586,7 @@ app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => 
        WHERE id = $2
        RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
                  location AS ubicacion, capacity AS capacidad, description AS descripcion,
-                 features AS caracteristicas, furniture AS mobiliario, created_at, updated_at`,
+                 features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
       [JSON.stringify(mobiliario), id]
     );
     if (result.rows.length === 0) {
@@ -571,6 +596,74 @@ app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => 
   } catch (err) {
     console.error('Error en PUT /api/salones/:id/mobiliario:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al guardar el mobiliario.' });
+  }
+});
+
+const SALON_RETURNING = `
+  RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
+            location AS ubicacion, capacity AS capacidad, description AS descripcion,
+            features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at
+`;
+
+app.post('/api/salones/:id/fotos', requireBitacoraAuth, uploadSalonFoto.single('foto'), async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ ok: false, mensaje: 'Selecciona una imagen JPG, PNG, GIF o WebP.' });
+  }
+  const url = `/api/salones/uploads/${req.file.filename}`;
+  try {
+    const result = await bitacoraPool.query(
+      `UPDATE campus_rooms
+       SET photos = COALESCE(photos, '[]'::jsonb) || $1::jsonb, updated_at = NOW()
+       WHERE id = $2
+       ${SALON_RETURNING}`,
+      [JSON.stringify([url]), id]
+    );
+    if (result.rows.length === 0) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    res.status(201).json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    fs.unlink(req.file.path, () => {});
+    console.error('Error en POST /api/salones/:id/fotos:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al subir la fotografía.' });
+  }
+});
+
+app.delete('/api/salones/:id/fotos', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  const url = String(req.body?.url || '');
+  if (!Number.isInteger(id) || id <= 0 || !url.startsWith('/api/salones/uploads/')) {
+    return res.status(400).json({ ok: false, mensaje: 'No se pudo identificar la fotografía.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `UPDATE campus_rooms
+       SET photos = COALESCE((
+         SELECT jsonb_agg(item)
+         FROM jsonb_array_elements(COALESCE(photos, '[]'::jsonb)) item
+         WHERE item <> to_jsonb($1::text)
+       ), '[]'::jsonb), updated_at = NOW()
+       WHERE id = $2
+       ${SALON_RETURNING}`,
+      [url, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    const archivo = path.join(UPLOADS_SALONES_DIR, path.basename(url));
+    if (fs.existsSync(archivo)) fs.unlinkSync(archivo);
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en DELETE /api/salones/:id/fotos:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al eliminar la fotografía.' });
   }
 });
 

@@ -15,8 +15,9 @@ export interface Salon {
   descripcion: string;
   caracteristicas: string[];
   mobiliario: Mobiliario[];
+  fotos: string[];
   created_at?: string;
   updated_at?: string;
 }
 
-export type SalonPayload = Omit<Salon, 'id' | 'slug' | 'mobiliario' | 'created_at' | 'updated_at'>;
+export type SalonPayload = Omit<Salon, 'id' | 'slug' | 'mobiliario' | 'fotos' | 'created_at' | 'updated_at'>;

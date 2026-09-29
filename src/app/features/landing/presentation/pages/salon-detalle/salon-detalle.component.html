@@ -110,37 +110,54 @@
             <div>
               <h2 class="text-xl font-bold text-gray-900">Registro fotográfico</h2>
               <p class="mt-1 text-sm text-gray-600">
-                En un teléfono, el botón abrirá la cámara trasera para tomar una fotografía del salón.
+                Toma una foto con la cámara o sube una imagen que ya tengas en el dispositivo.
               </p>
             </div>
 
-            <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white shadow-sm hover:bg-utp-blue/90 transition-colors">
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 0 1 2-2h2l1-2h8l1 2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
-                <circle cx="12" cy="13" r="4" stroke-width="2" />
-              </svg>
-              Tomar foto
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                class="sr-only"
-                (change)="agregarFoto($event)"
-              />
-            </label>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white shadow-sm hover:bg-utp-blue/90 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 0 1 2-2h2l1-2h8l1 2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+                  <circle cx="12" cy="13" r="4" stroke-width="2" />
+                </svg>
+                Tomar foto
+                <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="agregarFoto($event)" />
+              </label>
+              <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-utp-blue px-5 py-3 font-semibold text-utp-blue hover:bg-utp-blue/5 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1M12 12V4m0 0 4 4m-4-4L8 8" />
+                </svg>
+                Subir foto
+                <input type="file" accept="image/*" class="sr-only" (change)="agregarFoto($event)" />
+              </label>
+            </div>
           </div>
 
-          @if (fotosCapturadas.length) {
+          @if (mensajeFoto()) {
+            <p class="mt-4 text-sm text-amber-700">{{ mensajeFoto() }}</p>
+          }
+          @if (guardandoFoto()) {
+            <p class="mt-4 text-sm text-gray-500">Subiendo fotografía...</p>
+          }
+
+          @if (espacio.fotos.length || fotosCapturadas.length) {
             <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              @for (foto of espacio.fotos; track foto) {
+                <figure class="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                  <img [src]="foto" [alt]="'Fotografía del salón'" class="h-56 w-full object-cover" />
+                  @if (puedeRegistrar) {
+                    <button type="button" (click)="eliminarFotoGuardada(foto)" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors" aria-label="Eliminar fotografía">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 6 12 12M18 6 6 18" />
+                      </svg>
+                    </button>
+                  }
+                </figure>
+              }
               @for (foto of fotosCapturadas; track foto; let i = $index) {
                 <figure class="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
                   <img [src]="foto" [alt]="'Fotografía ' + (i + 1) + ' del salón'" class="h-56 w-full object-cover" />
-                  <button
-                    type="button"
-                    (click)="eliminarFoto(i)"
-                    class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors"
-                    [attr.aria-label]="'Eliminar fotografía ' + (i + 1)"
-                  >
+                  <button type="button" (click)="eliminarFoto(i)" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors" [attr.aria-label]="'Eliminar fotografía ' + (i + 1)">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 6 12 12M18 6 6 18" />
                     </svg>
@@ -148,12 +165,9 @@
                 </figure>
               }
             </div>
-            <p class="mt-4 text-xs text-amber-700">
-              Vista previa local: estas fotografías aún no se guardan en el servidor.
-            </p>
           } @else {
             <div class="mt-6 rounded-xl border-2 border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
-              Todavía no has tomado fotografías de este salón.
+              Todavía no hay fotografías de este salón.
             </div>
           }
         </section>

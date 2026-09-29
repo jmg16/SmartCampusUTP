@@ -34,6 +34,9 @@ export class SalonDetalleComponent implements OnInit, OnDestroy {
 
   salon = signal<Salon | undefined>(obtenerSalon(this.slug));
   cargando = signal(true);
+  desdeServidor = signal(false);
+  guardandoFoto = signal(false);
+  mensajeFoto = signal<string | null>(null);
   guardandoMobiliario = signal(false);
   mensajeMobiliario = signal<string | null>(null);
   pieza = this.catalogoMobiliario[0];
@@ -52,7 +55,12 @@ export class SalonDetalleComponent implements OnInit, OnDestroy {
     }
     this.salonesService.getBySlug(this.slug).subscribe({
       next: (salon) => {
-        this.salon.set({ ...salon, mobiliario: salon.mobiliario ?? [] });
+        this.salon.set({
+          ...salon,
+          mobiliario: salon.mobiliario ?? [],
+          fotos: salon.fotos ?? [],
+        });
+        this.desdeServidor.set(true);
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
@@ -91,7 +99,11 @@ export class SalonDetalleComponent implements OnInit, OnDestroy {
     this.mensajeMobiliario.set(null);
     this.salonesService.guardarMobiliario(espacio.id, mobiliario).subscribe({
       next: (salon) => {
-        this.salon.set({ ...salon, mobiliario: salon.mobiliario ?? [] });
+        this.salon.set({
+          ...salon,
+          mobiliario: salon.mobiliario ?? [],
+          fotos: salon.fotos ?? [],
+        });
         this.cantidadPieza = 1;
         this.seriePieza = '';
         this.guardandoMobiliario.set(false);
@@ -107,11 +119,48 @@ export class SalonDetalleComponent implements OnInit, OnDestroy {
   agregarFoto(event: Event): void {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
-
+    input.value = '';
     if (!archivo) return;
 
+    const espacio = this.salon();
+    if (this.puedeRegistrar && this.desdeServidor() && espacio) {
+      this.guardandoFoto.set(true);
+      this.mensajeFoto.set(null);
+      this.salonesService.subirFoto(espacio.id, archivo).subscribe({
+        next: (salon) => {
+          this.salon.set({
+            ...salon,
+            mobiliario: salon.mobiliario ?? [],
+            fotos: salon.fotos ?? [],
+          });
+          this.guardandoFoto.set(false);
+        },
+        error: (err) => {
+          this.guardandoFoto.set(false);
+          this.mensajeFoto.set(err?.error?.mensaje || 'No se pudo subir la fotografía.');
+        },
+      });
+      return;
+    }
+
     this.fotosCapturadas = [...this.fotosCapturadas, URL.createObjectURL(archivo)];
-    input.value = '';
+  }
+
+  eliminarFotoGuardada(url: string): void {
+    const espacio = this.salon();
+    if (!espacio) return;
+    this.salonesService.eliminarFoto(espacio.id, url).subscribe({
+      next: (salon) => {
+        this.salon.set({
+          ...salon,
+          mobiliario: salon.mobiliario ?? [],
+          fotos: salon.fotos ?? [],
+        });
+      },
+      error: (err) => {
+        this.mensajeFoto.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.');
+      },
+    });
   }
 
   eliminarFoto(indice: number): void {

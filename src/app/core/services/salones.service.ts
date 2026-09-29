@@ -44,6 +44,25 @@ export class SalonesService {
       .pipe(map((response) => response.dato));
   }
 
+  subirFoto(id: number, archivo: File): Observable<Salon> {
+    const form = new FormData();
+    form.append('foto', archivo);
+    return this.http
+      .post<{ ok: boolean; dato: Salon }>(`/api/salones/${id}/fotos`, form, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((response) => response.dato));
+  }
+
+  eliminarFoto(id: number, url: string): Observable<Salon> {
+    return this.http
+      .delete<{ ok: boolean; dato: Salon }>(`/api/salones/${id}/fotos`, {
+        headers: this.authHeaders(),
+        body: { url },
+      })
+      .pipe(map((response) => response.dato));
+  }
+
   guardarMobiliario(id: number, mobiliario: Mobiliario[]): Observable<Salon> {
     return this.http
       .put<{ ok: boolean; dato: Salon }>(`/api/salones/${id}/mobiliario`, { mobiliario }, {
