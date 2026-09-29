@@ -42,7 +42,7 @@
               />
               <datalist id="salones-existentes">
                 @for (salon of salones(); track salon.id) {
-                  <option [value]="salon.nombre">{{ salon.edificio }} · {{ salon.ubicacion }}</option>
+                  <option [value]="salon.nombre"></option>
                 }
               </datalist>
             </div>

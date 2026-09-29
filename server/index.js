@@ -477,7 +477,6 @@ function parseSalonPayload(body) {
     data.nombre &&
     data.tipo &&
     data.edificio &&
-    data.ubicacion &&
     Number.isInteger(data.capacidad) &&
     data.capacidad > 0 &&
     data.descripcion;

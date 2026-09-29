@@ -63,10 +63,6 @@
               </select>
             </div>
             <div>
-              <label for="ubicacion" class="mb-1 block text-sm font-medium text-gray-700">Piso o ubicación *</label>
-              <input id="ubicacion" type="text" formControlName="ubicacion" placeholder="Planta baja" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-            </div>
-            <div>
               <label for="capacidad" class="mb-1 block text-sm font-medium text-gray-700">Capacidad de personas *</label>
               <input id="capacidad" type="number" min="1" formControlName="capacidad" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
             </div>
@@ -114,7 +110,7 @@
             <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-utp-blue/40">
               <span class="text-xs font-semibold uppercase tracking-wide text-utp-blue">{{ salon.tipo }}</span>
               <h3 class="mt-1 font-bold text-gray-900">{{ salon.nombre }}</h3>
-              <p class="mt-1 text-sm text-gray-600">{{ salon.edificio }} · {{ salon.ubicacion }}</p>
+              <p class="mt-1 text-sm text-gray-600">{{ salon.edificio }}</p>
               <p class="mt-2 text-xs text-gray-500">Capacidad: {{ salon.capacidad }} personas</p>
               <div class="mt-4 flex justify-end gap-3 border-t border-gray-100 pt-3 text-sm">
                 <a [routerLink]="['/salones', salon.slug]" class="font-medium text-utp-blue hover:underline">Entrar al salón</a>
