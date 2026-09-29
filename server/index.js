@@ -447,7 +447,6 @@ function parseSalonPayload(body) {
     capacidad,
     descripcion: String(source.descripcion || '').trim(),
     caracteristicas,
-    mobiliario: parseMobiliario(source.mobiliario),
   };
   const valid =
     data.nombre &&
@@ -497,12 +496,12 @@ app.post('/api/salones', requireBitacoraAuth, async (req, res) => {
   }
   try {
     const result = await bitacoraPool.query(
-      `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features, furniture)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+      `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
                  location AS ubicacion, capacity AS capacidad, description AS descripcion,
                  features AS caracteristicas, furniture AS mobiliario, created_at, updated_at`,
-      [slug, data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, JSON.stringify(data.mobiliario)]
+      [slug, data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas]
     );
     res.status(201).json({ ok: true, dato: result.rows[0] });
   } catch (err) {
@@ -528,12 +527,12 @@ app.put('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
     const result = await bitacoraPool.query(
       `UPDATE campus_rooms
        SET name = $1, type = $2, building = $3, location = $4, capacity = $5,
-           description = $6, features = $7, furniture = $8::jsonb, updated_at = NOW()
-       WHERE id = $9
+           description = $6, features = $7, updated_at = NOW()
+       WHERE id = $8
        RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
                  location AS ubicacion, capacity AS capacidad, description AS descripcion,
                  features AS caracteristicas, furniture AS mobiliario, created_at, updated_at`,
-      [data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, JSON.stringify(data.mobiliario), id]
+      [data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
@@ -545,6 +544,33 @@ app.put('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
     }
     console.error('Error en PUT /api/salones/:id:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al actualizar el salón.' });
+  }
+});
+
+app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  const mobiliario = parseMobiliario(req.body?.mobiliario);
+  try {
+    const result = await bitacoraPool.query(
+      `UPDATE campus_rooms
+       SET furniture = $1::jsonb, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
+                 location AS ubicacion, capacity AS capacidad, description AS descripcion,
+                 features AS caracteristicas, furniture AS mobiliario, created_at, updated_at`,
+      [JSON.stringify(mobiliario), id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en PUT /api/salones/:id/mobiliario:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al guardar el mobiliario.' });
   }
 });
 

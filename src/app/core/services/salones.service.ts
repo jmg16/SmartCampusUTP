@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { Salon, SalonPayload } from '../../shared/models/salon.model';
+import { Mobiliario, Salon, SalonPayload } from '../../shared/models/salon.model';
 
 const STORAGE_KEY = 'smartcampus.bitacora.token';
 
@@ -39,6 +39,14 @@ export class SalonesService {
   update(id: number, payload: SalonPayload): Observable<Salon> {
     return this.http
       .put<{ ok: boolean; dato: Salon }>(`/api/salones/${id}`, payload, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((response) => response.dato));
+  }
+
+  guardarMobiliario(id: number, mobiliario: Mobiliario[]): Observable<Salon> {
+    return this.http
+      .put<{ ok: boolean; dato: Salon }>(`/api/salones/${id}/mobiliario`, { mobiliario }, {
         headers: this.authHeaders(),
       })
       .pipe(map((response) => response.dato));

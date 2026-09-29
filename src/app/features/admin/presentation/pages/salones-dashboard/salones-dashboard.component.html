@@ -77,33 +77,6 @@
             <textarea id="descripcion" rows="4" formControlName="descripcion" class="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20"></textarea>
           </div>
 
-          <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h3 class="font-semibold text-gray-900">Mobiliario</h3>
-            <p class="mt-1 text-sm text-gray-600">Elige el objeto, la cantidad y su número de serie.</p>
-            <div class="mt-4 flex flex-col gap-3 sm:flex-row">
-              <select [value]="pieza" (change)="pieza = $any($event.target).value" aria-label="Objeto" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
-                @for (objeto of catalogoMobiliario; track objeto) {
-                  <option [value]="objeto">{{ objeto }}</option>
-                }
-              </select>
-              <input type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" aria-label="Cantidad" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20 sm:w-28" />
-              <input type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" aria-label="Número de serie" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-              <button type="button" (click)="agregarMobiliario()" class="rounded-lg border border-utp-blue px-4 py-2 font-semibold text-utp-blue hover:bg-utp-blue hover:text-white">
-                Agregar
-              </button>
-            </div>
-            @if (mobiliario().length) {
-              <ul class="mt-4 flex flex-wrap gap-2">
-                @for (item of mobiliario(); track item.serie; let i = $index) {
-                  <li class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm text-gray-800 shadow-sm">
-                    <span>{{ item.nombre }} × {{ item.cantidad }} · {{ item.serie }}</span>
-                    <button type="button" (click)="quitarMobiliario(i)" class="text-gray-400 hover:text-red-600" [attr.aria-label]="'Quitar ' + item.nombre">×</button>
-                  </li>
-                }
-              </ul>
-            }
-          </div>
-
           <div>
             <label for="caracteristicas" class="mb-1 block text-sm font-medium text-gray-700">Características *</label>
             <textarea id="caracteristicas" rows="4" formControlName="caracteristicas" placeholder="Computadoras&#10;Proyector&#10;Aire acondicionado&#10;Acceso a internet" class="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20"></textarea>
@@ -144,6 +117,7 @@
               <p class="mt-1 text-sm text-gray-600">{{ salon.edificio }} · {{ salon.ubicacion }}</p>
               <p class="mt-2 text-xs text-gray-500">Capacidad: {{ salon.capacidad }} personas</p>
               <div class="mt-4 flex justify-end gap-3 border-t border-gray-100 pt-3 text-sm">
+                <a [routerLink]="['/salones', salon.slug]" class="font-medium text-utp-blue hover:underline">Entrar al salón</a>
                 <button type="button" (click)="seleccionar(salon)" class="font-medium text-utp-blue hover:underline">Editar</button>
                 <button type="button" (click)="eliminar(salon)" class="font-medium text-red-600 hover:underline">Eliminar</button>
               </div>

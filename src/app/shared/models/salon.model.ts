@@ -19,4 +19,4 @@ export interface Salon {
   updated_at?: string;
 }
 
-export type SalonPayload = Omit<Salon, 'id' | 'slug' | 'created_at' | 'updated_at'>;
+export type SalonPayload = Omit<Salon, 'id' | 'slug' | 'mobiliario' | 'created_at' | 'updated_at'>;
