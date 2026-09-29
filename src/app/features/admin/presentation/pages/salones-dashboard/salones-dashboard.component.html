@@ -1,0 +1,119 @@
+<section class="min-h-screen bg-slate-50">
+  <header class="bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark text-white shadow-sm">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-blue-100">Panel administrativo</p>
+        <h1 class="text-lg font-bold">Salones del campus</h1>
+      </div>
+      <nav class="flex flex-wrap items-center gap-2 text-xs">
+        <a routerLink="/admin/bitacora" class="rounded-full border border-white/20 bg-white/10 px-3 py-1 hover:bg-white/20">Bitácora</a>
+        <a routerLink="/admin/eventos" class="rounded-full border border-white/20 bg-white/10 px-3 py-1 hover:bg-white/20">Eventos</a>
+        <a routerLink="/admin/libreria-3d" class="rounded-full border border-white/20 bg-white/10 px-3 py-1 hover:bg-white/20">Librería 3D</a>
+        <a routerLink="/salones" class="rounded-full border border-white/20 bg-white/10 px-3 py-1 hover:bg-white/20">Ver salones</a>
+        <button type="button" (click)="cerrarSesion()" class="rounded-full border border-red-200/30 bg-red-500/20 px-3 py-1 hover:bg-red-500/40">
+          Cerrar sesión
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+      <div class="bg-gradient-to-r from-utp-blue to-utp-blue-dark px-5 py-4 text-white">
+        <h2 class="font-semibold">{{ editando ? 'Editar salón' : 'Agregar salón nuevo' }}</h2>
+        <p class="mt-1 text-sm text-blue-100">Completa la información que aparecerá en la ficha pública.</p>
+      </div>
+
+      <div class="p-5 sm:p-6">
+        @if (error()) {
+          <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</div>
+        }
+        @if (success()) {
+          <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ success() }}</div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-4">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="nombre" class="mb-1 block text-sm font-medium text-gray-700">Nombre del salón *</label>
+              <input id="nombre" type="text" formControlName="nombre" placeholder="Laboratorio de Sistemas 1" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <div>
+              <label for="tipo" class="mb-1 block text-sm font-medium text-gray-700">Tipo *</label>
+              <input id="tipo" type="text" formControlName="tipo" list="tipos-salon" placeholder="Laboratorio" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+              <datalist id="tipos-salon">
+                <option value="Laboratorio"></option>
+                <option value="Aula"></option>
+                <option value="Auditorio"></option>
+                <option value="Taller"></option>
+              </datalist>
+            </div>
+            <div>
+              <label for="edificio" class="mb-1 block text-sm font-medium text-gray-700">Facultad o edificio *</label>
+              <input id="edificio" type="text" formControlName="edificio" placeholder="Facultad de Sistemas" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <div>
+              <label for="ubicacion" class="mb-1 block text-sm font-medium text-gray-700">Piso o ubicación *</label>
+              <input id="ubicacion" type="text" formControlName="ubicacion" placeholder="Planta baja" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <div>
+              <label for="capacidad" class="mb-1 block text-sm font-medium text-gray-700">Capacidad de personas *</label>
+              <input id="capacidad" type="number" min="1" formControlName="capacidad" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+          </div>
+
+          <div>
+            <label for="descripcion" class="mb-1 block text-sm font-medium text-gray-700">Descripción *</label>
+            <textarea id="descripcion" rows="4" formControlName="descripcion" class="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20"></textarea>
+          </div>
+
+          <div>
+            <label for="caracteristicas" class="mb-1 block text-sm font-medium text-gray-700">Características *</label>
+            <textarea id="caracteristicas" rows="4" formControlName="caracteristicas" placeholder="Computadoras&#10;Proyector&#10;Aire acondicionado&#10;Acceso a internet" class="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20"></textarea>
+            <p class="mt-1 text-xs text-gray-500">Escribe una característica por línea o sepáralas con comas.</p>
+          </div>
+
+          <div class="flex items-center justify-between gap-3 pt-2">
+            <button type="button" (click)="limpiarFormulario()" class="text-sm text-gray-600 underline underline-offset-4">
+              {{ editando ? 'Cancelar edición' : 'Limpiar formulario' }}
+            </button>
+            <button type="submit" [disabled]="form.invalid || guardando()" class="rounded-xl bg-utp-blue px-5 py-2.5 text-sm font-semibold text-white hover:bg-utp-blue-dark disabled:cursor-not-allowed disabled:opacity-50">
+              {{ guardando() ? 'Guardando...' : editando ? 'Actualizar salón' : 'Crear salón' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section>
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-semibold text-gray-900">Salones registrados</h2>
+          <p class="text-sm text-gray-600">Selecciona uno para editar su información.</p>
+        </div>
+        <button type="button" (click)="cargar()" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">Recargar</button>
+      </div>
+
+      @if (cargandoLista()) {
+        <div class="rounded-xl bg-white p-6 text-center text-gray-500">Cargando salones...</div>
+      } @else if (datos().length === 0) {
+        <div class="rounded-xl bg-white p-6 text-center text-gray-500">Todavía no hay salones registrados.</div>
+      } @else {
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          @for (salon of datos(); track salon.id) {
+            <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-utp-blue/40">
+              <span class="text-xs font-semibold uppercase tracking-wide text-utp-blue">{{ salon.tipo }}</span>
+              <h3 class="mt-1 font-bold text-gray-900">{{ salon.nombre }}</h3>
+              <p class="mt-1 text-sm text-gray-600">{{ salon.edificio }} · {{ salon.ubicacion }}</p>
+              <p class="mt-2 text-xs text-gray-500">Capacidad: {{ salon.capacidad }} personas</p>
+              <div class="mt-4 flex justify-end gap-3 border-t border-gray-100 pt-3 text-sm">
+                <button type="button" (click)="seleccionar(salon)" class="font-medium text-utp-blue hover:underline">Editar</button>
+                <button type="button" (click)="eliminar(salon)" class="font-medium text-red-600 hover:underline">Eliminar</button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  </main>
+</section>

@@ -1,0 +1,104 @@
+<div class="min-h-screen flex flex-col bg-gray-50">
+  <app-navbar />
+
+  <main class="flex-1">
+    <section class="relative pt-24 pb-14 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-br from-utp-blue via-blue-800 to-slate-900" aria-hidden="true"></div>
+      <div class="relative max-w-5xl mx-auto px-4 text-center text-white">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-blue-100">Smart Campus</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl md:text-5xl font-bold">Salones del campus</h1>
+        <p class="mt-4 max-w-2xl mx-auto text-blue-100">
+          Consulta las características de cada espacio y registra fotografías desde tu dispositivo móvil.
+        </p>
+      </div>
+    </section>
+
+    <section class="py-12 md:py-16">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <form
+          class="mb-10 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm"
+          (submit)="$event.preventDefault(); buscarSalon()"
+        >
+          <label for="busqueda-salon" class="block text-lg font-bold text-gray-900">
+            Buscar un salón
+          </label>
+          <p class="mt-1 text-sm text-gray-600">
+            Escribe el nombre o selecciónalo entre los salones existentes.
+          </p>
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+            <div class="relative flex-1">
+              <svg class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M17 10A7 7 0 1 1 3 10a7 7 0 0 1 14 0Z" />
+              </svg>
+              <input
+                id="busqueda-salon"
+                type="text"
+                list="salones-existentes"
+                autocomplete="off"
+                [value]="nombreSalon"
+                (input)="nombreSalon = $any($event.target).value; mensajeBusqueda = ''"
+                placeholder="Ej. Laboratorio de Sistemas 1"
+                class="w-full rounded-xl border border-gray-300 py-3 pl-10 pr-4 text-gray-900 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20"
+              />
+              <datalist id="salones-existentes">
+                @for (salon of salones(); track salon.id) {
+                  <option [value]="salon.nombre">{{ salon.edificio }} · {{ salon.ubicacion }}</option>
+                }
+              </datalist>
+            </div>
+            <button
+              type="submit"
+              class="rounded-xl bg-utp-blue px-6 py-3 font-semibold text-white hover:bg-utp-blue/90 transition-colors"
+            >
+              Ver salón
+            </button>
+          </div>
+          @if (mensajeBusqueda) {
+            <p class="mt-3 text-sm text-amber-700" role="alert">{{ mensajeBusqueda }}</p>
+          }
+        </form>
+
+        @if (cargando()) {
+          <div class="py-10 text-center text-gray-500">Cargando salones...</div>
+        }
+
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          @for (salon of salones(); track salon.id) {
+            <article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow">
+              <div class="flex h-52 flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700">
+                <svg class="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01" />
+                </svg>
+                <span class="mt-3 rounded-full bg-amber-200/70 px-3 py-1 text-xs font-bold uppercase tracking-wider">
+                  En construcción
+                </span>
+              </div>
+              <div class="p-5">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="rounded-full bg-utp-blue/10 px-3 py-1 text-xs font-semibold text-utp-blue">
+                    {{ salon.tipo }}
+                  </span>
+                  <span class="text-sm text-gray-500">{{ salon.capacidad }} personas</span>
+                </div>
+                <h2 class="mt-4 text-xl font-bold text-gray-900">{{ salon.nombre }}</h2>
+                <p class="mt-1 text-sm font-medium text-utp-blue">{{ salon.edificio }}</p>
+                <p class="mt-3 text-sm text-gray-600 line-clamp-2">{{ salon.descripcion }}</p>
+                <a
+                  [routerLink]="['/salones', salon.slug]"
+                  class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-utp-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-utp-blue/90 transition-colors"
+                >
+                  Ver salón
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <app-footer />
+</div>

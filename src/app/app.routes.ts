@@ -45,6 +45,20 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'salones',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/salones/salones.component').then(
+        (m) => m.SalonesComponent
+      ),
+  },
+  {
+    path: 'salones/:id',
+    loadComponent: () =>
+      import('./features/landing/presentation/pages/salon-detalle/salon-detalle.component').then(
+        (m) => m.SalonDetalleComponent
+      ),
+  },
+  {
     path: 'admin',
     redirectTo: 'admin/login',
     pathMatch: 'full',
@@ -78,6 +92,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admin/presentation/pages/libreria3d-dashboard/libreria3d-dashboard.component').then(
         (m) => m.Libreria3dDashboardComponent
+      ),
+  },
+  {
+    path: 'admin/salones',
+    canActivate: [bitacoraAuthGuard],
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/salones-dashboard/salones-dashboard.component').then(
+        (m) => m.SalonesDashboardComponent
       ),
   },
   { path: '**', redirectTo: '' },

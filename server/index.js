@@ -129,12 +129,16 @@ function withAbsoluteCoverList(rows) {
 
 function withAbsoluteEventImages(event) {
   if (!event || !Array.isArray(event.images)) return event;
-  // Importante:
-  // Para evitar problemas de DNS/host desde `localhost` o redes distintas,
-  // devolvemos las URLs como relativas tal como se guardan en BD:
-  //   /api/eventos/uploads/...
-  // De esta forma cargan vía Nginx/proxy/túnel al backend.
-  return { ...event, images: event.images };
+  const normalizedImages = event.images
+    .filter((img) => typeof img === 'string' && img.trim())
+    .map((img) => {
+      const trimmed = img.trim();
+      // Acepta URLs antiguas guardadas solo como nombre de archivo.
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      if (trimmed.startsWith('/')) return trimmed;
+      return `/api/eventos/uploads/${trimmed}`;
+    });
+  return { ...event, images: normalizedImages };
 }
 
 function withAbsoluteEventImagesList(rows) {
@@ -316,6 +320,47 @@ async function ensureModelLibraryTable() {
   }
 }
 
+async function ensureSalonesTable() {
+  if (!bitacoraPool) return;
+  try {
+    await bitacoraPool.query(`
+      CREATE TABLE IF NOT EXISTS campus_rooms (
+        id          SERIAL PRIMARY KEY,
+        slug        VARCHAR(180) NOT NULL UNIQUE,
+        name        VARCHAR(255) NOT NULL UNIQUE,
+        type        VARCHAR(100) NOT NULL,
+        building    VARCHAR(255) NOT NULL,
+        location    VARCHAR(255) NOT NULL,
+        capacity    INTEGER NOT NULL CHECK (capacity > 0),
+        description TEXT NOT NULL,
+        features    TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_campus_rooms_name
+      ON campus_rooms (name)
+    `);
+    await bitacoraPool.query(
+      `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features)
+       VALUES
+         ('lab-sistemas-1', 'Laboratorio de Sistemas 1', 'Laboratorio', 'Facultad de Sistemas', 'Planta baja', 25,
+          'Espacio para clases prácticas de programación, redes y desarrollo de software.',
+          ARRAY['Computadoras', 'Proyector', 'Aire acondicionado', 'Acceso a internet']),
+         ('aula-201', 'Aula 201', 'Aula', 'Edificio Académico', 'Segundo piso', 35,
+          'Salón de clases para actividades académicas, presentaciones y trabajo colaborativo.',
+          ARRAY['Proyector', 'Pizarra', 'Aire acondicionado', 'Tomas eléctricas']),
+         ('lab-electrica', 'Laboratorio de Eléctrica', 'Laboratorio', 'Facultad de Ingeniería Eléctrica', 'Planta baja', 20,
+          'Laboratorio equipado para prácticas de circuitos, electrónica y mediciones eléctricas.',
+          ARRAY['Mesas de trabajo', 'Equipos de medición', 'Proyector', 'Área de seguridad'])
+       ON CONFLICT (slug) DO NOTHING`
+    );
+  } catch (err) {
+    console.error('[salones] No se pudo asegurar la tabla campus_rooms:', err.message);
+  }
+}
+
 function requireBitacoraAuth(req, res, next) {
   if (!BITACORA_JWT_SECRET) {
     return res.status(503).json({
@@ -346,6 +391,157 @@ function requireBitacoraAuth(req, res, next) {
 // Salud general
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Smart Campus API' });
+});
+
+// --- Salones del campus ---
+
+const SALON_SELECT = `
+  SELECT id, slug, name AS nombre, type AS tipo, building AS edificio,
+         location AS ubicacion, capacity AS capacidad, description AS descripcion,
+         features AS caracteristicas, created_at, updated_at
+  FROM campus_rooms
+`;
+
+function slugifySalon(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 180);
+}
+
+function parseSalonPayload(body) {
+  const source = body || {};
+  const capacidad = Number.parseInt(source.capacidad, 10);
+  const caracteristicas = Array.isArray(source.caracteristicas)
+    ? source.caracteristicas.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+  const data = {
+    nombre: String(source.nombre || '').trim(),
+    tipo: String(source.tipo || '').trim(),
+    edificio: String(source.edificio || '').trim(),
+    ubicacion: String(source.ubicacion || '').trim(),
+    capacidad,
+    descripcion: String(source.descripcion || '').trim(),
+    caracteristicas,
+  };
+  const valid =
+    data.nombre &&
+    data.tipo &&
+    data.edificio &&
+    data.ubicacion &&
+    Number.isInteger(data.capacidad) &&
+    data.capacidad > 0 &&
+    data.descripcion;
+  return { data, valid: Boolean(valid) };
+}
+
+app.get('/api/salones', async (_req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  try {
+    const result = await bitacoraPool.query(`${SALON_SELECT} ORDER BY name ASC`);
+    res.json({ ok: true, datos: result.rows });
+  } catch (err) {
+    console.error('Error en GET /api/salones:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener los salones.' });
+  }
+});
+
+app.get('/api/salones/:slug', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  try {
+    const result = await bitacoraPool.query(`${SALON_SELECT} WHERE slug = $1`, [req.params.slug]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en GET /api/salones/:slug:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener el salón.' });
+  }
+});
+
+app.post('/api/salones', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const { data, valid } = parseSalonPayload(req.body);
+  if (!valid) {
+    return res.status(400).json({ ok: false, mensaje: 'Completa todos los campos requeridos del salón.' });
+  }
+  const slug = slugifySalon(data.nombre);
+  if (!slug) {
+    return res.status(400).json({ ok: false, mensaje: 'El nombre del salón no es válido.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
+                 location AS ubicacion, capacity AS capacidad, description AS descripcion,
+                 features AS caracteristicas, created_at, updated_at`,
+      [slug, data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas]
+    );
+    res.status(201).json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ ok: false, mensaje: 'Ya existe un salón con ese nombre.' });
+    }
+    console.error('Error en POST /api/salones:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al crear el salón.' });
+  }
+});
+
+app.put('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  const { data, valid } = parseSalonPayload(req.body);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!valid) {
+    return res.status(400).json({ ok: false, mensaje: 'Completa todos los campos requeridos del salón.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `UPDATE campus_rooms
+       SET name = $1, type = $2, building = $3, location = $4, capacity = $5,
+           description = $6, features = $7, updated_at = NOW()
+       WHERE id = $8
+       RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
+                 location AS ubicacion, capacity AS capacidad, description AS descripcion,
+                 features AS caracteristicas, created_at, updated_at`,
+      [data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ ok: false, mensaje: 'Ya existe un salón con ese nombre.' });
+    }
+    console.error('Error en PUT /api/salones/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al actualizar el salón.' });
+  }
+});
+
+app.delete('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const result = await bitacoraPool.query('DELETE FROM campus_rooms WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    res.json({ ok: true, mensaje: 'Salón eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error en DELETE /api/salones/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al eliminar el salón.' });
+  }
 });
 
 // --- Bitácora de proyecto ---
@@ -1258,6 +1454,7 @@ app.get('/', (_req, res) => {
 
 ensureEventosTable();
 ensureModelLibraryTable();
+ensureSalonesTable();
 
 app.listen(PORT, () => {
   console.log(`API Smart Campus escuchando en http://localhost:${PORT}`);

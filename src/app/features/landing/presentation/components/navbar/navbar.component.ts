@@ -30,6 +30,7 @@ export class NavbarComponent {
       children: [
         { label: 'Gemelo Digital', route: '/gemelo-3d' },
         { label: 'Librería de Modelos', route: '/libreria-3d' },
+        { label: 'Salones', route: '/salones' },
       ],
     },
     { label: 'Únete', fragment: 'unete' },
