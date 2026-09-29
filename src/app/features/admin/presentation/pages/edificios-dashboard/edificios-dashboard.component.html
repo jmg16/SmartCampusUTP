@@ -89,7 +89,16 @@
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           @for (edificio of datos(); track edificio.id) {
             <article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:border-utp-blue/40">
-              @if (edificio.modelo_url) {
+              @if (edificio.foto) {
+                <img [src]="edificio.foto" [alt]="edificio.nombre" class="h-36 w-full object-cover" />
+              } @else if (edificio.bim_url) {
+                <div class="flex h-36 w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-utp-blue via-sky-500 to-indigo-600 text-white">
+                  <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                  </svg>
+                  <span class="text-xs uppercase tracking-[0.2em] text-blue-100">Gemelo 3D</span>
+                </div>
+              } @else if (edificio.modelo_url) {
                 <div class="h-36 w-full bg-gradient-to-b from-gray-800 to-gray-900">
                   <model-viewer
                     [attr.src]="edificio.modelo_url"
@@ -101,8 +110,6 @@
                     style="--poster-color: transparent;"
                   ></model-viewer>
                 </div>
-              } @else if (edificio.foto) {
-                <img [src]="edificio.foto" [alt]="edificio.nombre" class="h-36 w-full object-cover" />
               } @else {
                 <div class="flex h-36 w-full items-center justify-center bg-gray-100 text-gray-400">
                   <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -115,7 +122,9 @@
                 <p class="mt-1 text-sm text-gray-600">{{ edificio.niveles }} {{ edificio.niveles === 1 ? 'nivel' : 'niveles' }}</p>
                 <p class="mt-1 text-xs text-gray-500">
                   {{ edificio.salones }} {{ edificio.salones === 1 ? 'salón' : 'salones' }}
-                  @if (edificio.modelo_nombre) {
+                  @if (edificio.bim_url) {
+                    <span class="text-utp-blue"> · Gemelo 3D</span>
+                  } @else if (edificio.modelo_nombre) {
                     <span class="text-utp-blue"> · {{ edificio.modelo_nombre }}</span>
                   }
                 </p>

@@ -4,6 +4,7 @@ export interface Edificio {
   nombre: string;
   niveles: number;
   foto: string | null;
+  bim_url: string | null;
   modelo_id: number | null;
   modelo_nombre: string | null;
   modelo_url: string | null;

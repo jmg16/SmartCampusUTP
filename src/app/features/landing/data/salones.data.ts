@@ -35,7 +35,7 @@ export const SALONES: Salon[] = [
     id: 3,
     slug: 'lab-electrica',
     nombre: 'Laboratorio de Eléctrica',
-    edificio: 'Facultad de Ingeniería Eléctrica',
+    edificio: 'Facultad de Eléctrica',
     edificio_id: null,
     ubicacion: 'Planta baja',
     capacidad: 20,

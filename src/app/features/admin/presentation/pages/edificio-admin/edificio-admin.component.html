@@ -26,7 +26,15 @@
           }
 
           <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            @if (lugar.modelo_url) {
+            @if (visorBim(); as visor) {
+              <iframe
+                title="Gemelo 3D del edificio"
+                [src]="visor"
+                class="block h-[420px] w-full bg-black"
+                frameborder="0"
+                loading="lazy"
+              ></iframe>
+            } @else if (lugar.modelo_url) {
               <div class="h-72 w-full bg-gradient-to-b from-gray-800 to-gray-900">
                 <model-viewer
                   [attr.src]="lugar.modelo_url"
@@ -43,13 +51,15 @@
               <h2 class="text-2xl font-bold text-gray-900">{{ lugar.nombre }}</h2>
               <p class="mt-1 text-sm text-gray-600">
                 {{ lugar.niveles }} {{ lugar.niveles === 1 ? 'nivel' : 'niveles' }}
-                @if (lugar.modelo_nombre) {
+                @if (lugar.bim_url) {
+                  <span class="text-utp-blue"> · Gemelo 3D</span>
+                } @else if (lugar.modelo_nombre) {
                   <span class="text-utp-blue"> · Modelo 3D: {{ lugar.modelo_nombre }}</span>
                 } @else {
                   <span> · Sin modelo 3D enlazado</span>
                 }
               </p>
-              @if (!lugar.modelo_url) {
+              @if (!lugar.bim_url && !lugar.modelo_url) {
                 <p class="mt-2 text-xs text-gray-500">Puedes enlazar un modelo de la librería 3D desde la lista de edificios, con el botón Editar.</p>
               }
             </div>
@@ -124,6 +134,17 @@
                     <label for="capacidad" class="mb-1 block text-sm font-medium text-gray-700">Capacidad de personas *</label>
                     <input id="capacidad" type="number" min="1" formControlName="capacidad" class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
                   </div>
+                  @if (editando) {
+                    <div>
+                      <label for="edificio" class="mb-1 block text-sm font-medium text-gray-700">Edificio</label>
+                      <select id="edificio" formControlName="edificio_id" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
+                        @for (opcion of edificios(); track opcion.id) {
+                          <option [ngValue]="opcion.id">{{ opcion.nombre }}</option>
+                        }
+                      </select>
+                      <p class="mt-1 text-xs text-gray-500">Cámbialo para pasar el salón a otro edificio.</p>
+                    </div>
+                  }
                 </div>
 
                 <div>

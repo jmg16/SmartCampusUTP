@@ -1,5 +1,6 @@
 import { CUSTOM_ELEMENTS_SCHEMA, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
@@ -22,10 +23,13 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
   private edificiosService = inject(EdificiosService);
   private salonesService = inject(SalonesService);
   private auth = inject(BitacoraService);
+  private sanitizer = inject(DomSanitizer);
 
   readonly tipos = ['Aula', 'Laboratorio', 'Auditorio', 'Taller', 'Sala de reuniones'];
 
   edificio = signal<Edificio | null>(null);
+  edificios = signal<Edificio[]>([]);
+  visorBim = signal<SafeResourceUrl | null>(null);
   salones = signal<Salon[]>([]);
   cargando = signal(true);
   guardando = signal(false);
@@ -37,6 +41,7 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
 
   form = this.fb.group({
     id: [null as number | null],
+    edificio_id: [null as number | null],
     nombre: ['', [Validators.required, Validators.maxLength(255)]],
     tipo: ['', [Validators.required, Validators.maxLength(100)]],
     capacidad: [null as number | null, [Validators.required, Validators.min(1)]],
@@ -53,11 +58,22 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
     this.edificiosService.getBySlug(slug).subscribe({
       next: (edificio) => {
         this.edificio.set(edificio);
+        this.visorBim.set(this.urlVisorBim(edificio.bim_url));
+        this.form.controls.edificio_id.setValue(edificio.id);
         this.cargando.set(false);
         this.cargarSalones();
       },
       error: () => this.cargando.set(false),
     });
+    this.edificiosService.list().subscribe({
+      next: (edificios) => this.edificios.set(edificios),
+      error: () => this.edificios.set([]),
+    });
+  }
+
+  private urlVisorBim(url: string | null): SafeResourceUrl | null {
+    if (!url || !url.startsWith('https://bimch.utp.ac.pa/')) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
   get editando(): boolean {
@@ -76,6 +92,7 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
   seleccionar(salon: Salon): void {
     this.form.setValue({
       id: salon.id,
+      edificio_id: salon.edificio_id ?? this.edificio()?.id ?? null,
       nombre: salon.nombre,
       tipo: salon.tipo,
       capacidad: salon.capacidad,
@@ -89,6 +106,7 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
   limpiarFormulario(): void {
     this.form.reset({
       id: null,
+      edificio_id: this.edificio()?.id ?? null,
       nombre: '',
       tipo: '',
       capacidad: null,
@@ -104,7 +122,7 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
     const payload: SalonPayload = {
       nombre: String(value.nombre).trim(),
       tipo: String(value.tipo).trim(),
-      edificio_id: edificio.id,
+      edificio_id: value.edificio_id ?? edificio.id,
       ubicacion: '',
       capacidad: Number(value.capacidad),
       descripcion: String(value.descripcion).trim(),
@@ -124,7 +142,10 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
     request.subscribe({
       next: () => {
         this.guardando.set(false);
-        this.success.set(value.id ? 'Salón actualizado.' : 'Salón creado.');
+        const movido = value.edificio_id && value.edificio_id !== edificio.id;
+        this.success.set(
+          movido ? 'Salón movido a otro edificio.' : value.id ? 'Salón actualizado.' : 'Salón creado.'
+        );
         this.limpiarFormulario();
         this.cargarSalones();
       },

@@ -360,6 +360,42 @@ async function ensureModelLibraryTable() {
   }
 }
 
+// Los mismos edificios que muestra la página Gemelo 3D, con su visor BIM.
+const EDIFICIOS_GEMELO = [
+  { nombre: 'Facultad de Civil', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/04fb93c3e1#embed=%7B%22isEnabled%22%3Atrue%7D' },
+  { nombre: 'Cafetín', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/085e61af29#embed=%7B%22isEnabled%22%3Atrue%7D' },
+  { nombre: 'Facultad de Sistemas', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/ec603815fc#embed=%7B%22isEnabled%22%3Atrue%7D' },
+  { nombre: 'Facultad de Ciencia y Tecnología', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/4c1ad7027c#embed=%7B%22isEnabled%22%3Atrue%7D' },
+  { nombre: 'Talleres', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/133fa6e1d8#embed=%7B%22isEnabled%22%3Atrue%7D' },
+  { nombre: 'Facultad de Eléctrica', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/1c557af3de#embed=%7B%22isEnabled%22%3Atrue%7D' },
+  { nombre: 'Cafetería', bim: 'https://bimch.utp.ac.pa/projects/18fae223d7/models/71a33172b0#embed=%7B%22isEnabled%22%3Atrue%7D' },
+];
+
+// Nombres que se usaron antes para el mismo edificio del gemelo.
+const EDIFICIOS_ALIAS = [
+  ['Facultad de Ingeniería Eléctrica', 'Facultad de Eléctrica'],
+  ['Facultad de Ingeniería Civil', 'Facultad de Civil'],
+];
+
+async function unirEdificio(anterior, actual) {
+  const viejo = await bitacoraPool.query('SELECT id FROM campus_buildings WHERE name = $1', [anterior]);
+  if (viejo.rows.length === 0) return;
+  const nuevo = await bitacoraPool.query('SELECT id FROM campus_buildings WHERE name = $1', [actual]);
+  if (nuevo.rows.length === 0) {
+    await bitacoraPool.query(
+      'UPDATE campus_buildings SET name = $1, slug = $2, updated_at = NOW() WHERE id = $3',
+      [actual, slugifySalon(actual), viejo.rows[0].id]
+    );
+  } else {
+    await bitacoraPool.query('UPDATE campus_rooms SET building_id = $1 WHERE building_id = $2', [
+      nuevo.rows[0].id,
+      viejo.rows[0].id,
+    ]);
+    await bitacoraPool.query('DELETE FROM campus_buildings WHERE id = $1', [viejo.rows[0].id]);
+  }
+  await bitacoraPool.query('UPDATE campus_rooms SET building = $1 WHERE building = $2', [actual, anterior]);
+}
+
 async function ensureEdificiosTable() {
   if (!bitacoraPool) return;
   try {
@@ -374,9 +410,18 @@ async function ensureEdificiosTable() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    await bitacoraPool.query(`
+      ALTER TABLE campus_buildings
+      ADD COLUMN IF NOT EXISTS bim_url TEXT
+    `);
+    await bitacoraPool.query(`
+      ALTER TABLE campus_rooms
+      ADD COLUMN IF NOT EXISTS building_id INTEGER REFERENCES campus_buildings (id) ON DELETE SET NULL
+    `);
     // Los salones guardaban el edificio como texto: se convierten en registros.
     const previos = await bitacoraPool.query(
-      `SELECT DISTINCT building FROM campus_rooms WHERE COALESCE(building, '') <> ''`
+      `SELECT DISTINCT building FROM campus_rooms
+       WHERE building_id IS NULL AND COALESCE(building, '') <> ''`
     );
     for (const fila of previos.rows) {
       await bitacoraPool.query(
@@ -386,15 +431,22 @@ async function ensureEdificiosTable() {
       );
     }
     await bitacoraPool.query(`
-      ALTER TABLE campus_rooms
-      ADD COLUMN IF NOT EXISTS building_id INTEGER REFERENCES campus_buildings (id) ON DELETE SET NULL
-    `);
-    await bitacoraPool.query(`
       UPDATE campus_rooms r
       SET building_id = b.id
       FROM campus_buildings b
       WHERE r.building_id IS NULL AND r.building = b.name
     `);
+    for (const [anterior, actual] of EDIFICIOS_ALIAS) {
+      await unirEdificio(anterior, actual);
+    }
+    for (const edificio of EDIFICIOS_GEMELO) {
+      await bitacoraPool.query(
+        `INSERT INTO campus_buildings (slug, name, bim_url) VALUES ($1, $2, $3)
+         ON CONFLICT (name) DO UPDATE
+         SET bim_url = COALESCE(campus_buildings.bim_url, EXCLUDED.bim_url)`,
+        [slugifySalon(edificio.nombre), edificio.nombre, edificio.bim]
+      );
+    }
     await bitacoraPool.query(`
       CREATE INDEX IF NOT EXISTS idx_campus_rooms_building
       ON campus_rooms (building_id)
@@ -439,6 +491,8 @@ async function ensureSalonesTable() {
       ALTER TABLE campus_rooms
       ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb
     `);
+    const existentes = await bitacoraPool.query('SELECT COUNT(*)::int AS total FROM campus_rooms');
+    if (existentes.rows[0].total > 0) return;
     await bitacoraPool.query(
       `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features)
        VALUES
@@ -448,7 +502,7 @@ async function ensureSalonesTable() {
          ('aula-201', 'Aula 201', 'Aula', 'Edificio Académico', 'Segundo piso', 35,
           'Salón de clases para actividades académicas, presentaciones y trabajo colaborativo.',
           ARRAY['Proyector', 'Pizarra', 'Aire acondicionado', 'Tomas eléctricas']),
-         ('lab-electrica', 'Laboratorio de Eléctrica', 'Laboratorio', 'Facultad de Ingeniería Eléctrica', 'Planta baja', 20,
+         ('lab-electrica', 'Laboratorio de Eléctrica', 'Laboratorio', 'Facultad de Eléctrica', 'Planta baja', 20,
           'Laboratorio equipado para prácticas de circuitos, electrónica y mediciones eléctricas.',
           ARRAY['Mesas de trabajo', 'Equipos de medición', 'Proyector', 'Área de seguridad'])
        ON CONFLICT (slug) DO NOTHING`
@@ -494,7 +548,7 @@ app.get('/api/health', (req, res) => {
 
 const EDIFICIO_SELECT = `
   SELECT b.id, b.slug, b.name AS nombre, b.levels AS niveles, b.photo AS foto,
-         b.model_id AS modelo_id, m.name AS modelo_nombre, m.file_url AS modelo_url,
+         b.bim_url, b.model_id AS modelo_id, m.name AS modelo_nombre, m.file_url AS modelo_url,
          (SELECT COUNT(*) FROM campus_rooms r WHERE r.building_id = b.id)::int AS salones,
          b.created_at, b.updated_at
   FROM campus_buildings b
