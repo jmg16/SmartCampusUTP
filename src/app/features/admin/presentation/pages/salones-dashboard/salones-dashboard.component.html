@@ -79,7 +79,7 @@
 
           <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <h3 class="font-semibold text-gray-900">Mobiliario</h3>
-            <p class="mt-1 text-sm text-gray-600">Elige el objeto, indica cuántos hay y agrégalo. No hace falta llenar más datos.</p>
+            <p class="mt-1 text-sm text-gray-600">Elige el objeto, la cantidad y su número de serie.</p>
             <div class="mt-4 flex flex-col gap-3 sm:flex-row">
               <select [value]="pieza" (change)="pieza = $any($event.target).value" aria-label="Objeto" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
                 @for (objeto of catalogoMobiliario; track objeto) {
@@ -87,16 +87,17 @@
                 }
               </select>
               <input type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" aria-label="Cantidad" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20 sm:w-28" />
+              <input type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" aria-label="Número de serie" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
               <button type="button" (click)="agregarMobiliario()" class="rounded-lg border border-utp-blue px-4 py-2 font-semibold text-utp-blue hover:bg-utp-blue hover:text-white">
                 Agregar
               </button>
             </div>
             @if (mobiliario().length) {
               <ul class="mt-4 flex flex-wrap gap-2">
-                @for (item of mobiliario(); track item.nombre) {
+                @for (item of mobiliario(); track item.serie; let i = $index) {
                   <li class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm text-gray-800 shadow-sm">
-                    <span>{{ item.nombre }} × {{ item.cantidad }}</span>
-                    <button type="button" (click)="quitarMobiliario(item.nombre)" class="text-gray-400 hover:text-red-600" [attr.aria-label]="'Quitar ' + item.nombre">×</button>
+                    <span>{{ item.nombre }} × {{ item.cantidad }} · {{ item.serie }}</span>
+                    <button type="button" (click)="quitarMobiliario(i)" class="text-gray-400 hover:text-red-600" [attr.aria-label]="'Quitar ' + item.nombre">×</button>
                   </li>
                 }
               </ul>

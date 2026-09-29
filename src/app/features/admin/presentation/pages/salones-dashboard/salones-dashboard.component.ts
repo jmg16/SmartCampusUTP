@@ -39,6 +39,7 @@ export class SalonesDashboardComponent implements OnInit {
   mobiliario = signal<Mobiliario[]>([]);
   pieza = this.catalogoMobiliario[0];
   cantidadPieza = 1;
+  seriePieza = '';
   readonly facultades = [
     'Facultad de Ingeniería Civil',
     'Facultad de Ingeniería Eléctrica',
@@ -111,27 +112,30 @@ export class SalonesDashboardComponent implements OnInit {
     this.mobiliario.set([]);
     this.pieza = this.catalogoMobiliario[0];
     this.cantidadPieza = 1;
+    this.seriePieza = '';
   }
 
   agregarMobiliario(): void {
     const nombre = this.pieza.trim();
+    const serie = this.seriePieza.trim();
     const cantidad = Number(this.cantidadPieza);
-    if (!nombre || !Number.isInteger(cantidad) || cantidad < 1) return;
+    if (!nombre || !serie || !Number.isInteger(cantidad) || cantidad < 1) {
+      this.error.set('Indica el objeto, la cantidad y el número de serie.');
+      return;
+    }
+    if (this.mobiliario().some((item) => item.serie.toLowerCase() === serie.toLowerCase())) {
+      this.error.set('Ese número de serie ya está registrado en este salón.');
+      return;
+    }
 
-    const actual = this.mobiliario();
-    const existente = actual.find((item) => item.nombre === nombre);
-    this.mobiliario.set(
-      existente
-        ? actual.map((item) =>
-            item.nombre === nombre ? { ...item, cantidad: item.cantidad + cantidad } : item
-          )
-        : [...actual, { nombre, cantidad }]
-    );
+    this.mobiliario.set([...this.mobiliario(), { nombre, cantidad, serie }]);
     this.cantidadPieza = 1;
+    this.seriePieza = '';
+    this.error.set(null);
   }
 
-  quitarMobiliario(nombre: string): void {
-    this.mobiliario.set(this.mobiliario().filter((item) => item.nombre !== nombre));
+  quitarMobiliario(indice: number): void {
+    this.mobiliario.set(this.mobiliario().filter((_, posicion) => posicion !== indice));
   }
 
   enviar(): void {

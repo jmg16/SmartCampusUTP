@@ -1,6 +1,7 @@
 export interface Mobiliario {
   nombre: string;
   cantidad: number;
+  serie: string;
 }
 
 export interface Salon {

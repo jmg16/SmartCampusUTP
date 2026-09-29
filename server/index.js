@@ -408,14 +408,19 @@ const SALON_SELECT = `
 
 function parseMobiliario(value) {
   if (!Array.isArray(value)) return [];
-  const cantidades = new Map();
+  const items = [];
+  const series = new Set();
   for (const item of value) {
     const nombre = String(item?.nombre || '').trim();
+    const serie = String(item?.serie || '').trim();
     const cantidad = Number.parseInt(item?.cantidad, 10);
-    if (!nombre || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > 999) continue;
-    cantidades.set(nombre, (cantidades.get(nombre) || 0) + cantidad);
+    if (!nombre || !serie || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > 999) continue;
+    const clave = serie.toLowerCase();
+    if (series.has(clave)) continue;
+    series.add(clave);
+    items.push({ nombre, cantidad, serie });
   }
-  return [...cantidades.entries()].map(([nombre, cantidad]) => ({ nombre, cantidad }));
+  return items;
 }
 
 function slugifySalon(value) {
