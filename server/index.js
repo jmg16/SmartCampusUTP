@@ -483,11 +483,39 @@ function parseSalonPayload(body) {
   return { data, valid: Boolean(valid) };
 }
 
+function presentSalon(row) {
+  if (!row || typeof row !== 'object') return row;
+  const fotos = Array.isArray(row.fotos)
+    ? row.fotos.map((url) => {
+        if (typeof url !== 'string') return url;
+        const nombre = path.basename(url).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+        return nombre ? `/api/salones/foto/${nombre}` : url;
+      })
+    : [];
+  return { ...row, fotos };
+}
+
+function archivoDeFotoSalon(url) {
+  const nombre = path.basename(String(url || '')).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+  if (!nombre || !/^[a-zA-Z0-9_-]+$/.test(nombre)) return null;
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+    const archivo = path.join(UPLOADS_SALONES_DIR, nombre + ext);
+    if (fs.existsSync(archivo)) return archivo;
+  }
+  return null;
+}
+
+app.get('/api/salones/foto/:nombre', (req, res) => {
+  const archivo = archivoDeFotoSalon(req.params.nombre);
+  if (!archivo) return res.status(404).end();
+  res.sendFile(archivo);
+});
+
 app.get('/api/salones', async (_req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   try {
     const result = await bitacoraPool.query(`${SALON_SELECT} ORDER BY name ASC`);
-    res.json({ ok: true, datos: result.rows });
+    res.json({ ok: true, datos: result.rows.map(presentSalon) });
   } catch (err) {
     console.error('Error en GET /api/salones:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al obtener los salones.' });
@@ -501,7 +529,7 @@ app.get('/api/salones/:slug', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.json({ ok: true, dato: result.rows[0] });
+    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
   } catch (err) {
     console.error('Error en GET /api/salones/:slug:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al obtener el salón.' });
@@ -527,7 +555,7 @@ app.post('/api/salones', requireBitacoraAuth, async (req, res) => {
                  features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
       [slug, data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas]
     );
-    res.status(201).json({ ok: true, dato: result.rows[0] });
+    res.status(201).json({ ok: true, dato: presentSalon(result.rows[0]) });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ ok: false, mensaje: 'Ya existe un salón con ese nombre.' });
@@ -561,7 +589,7 @@ app.put('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.json({ ok: true, dato: result.rows[0] });
+    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ ok: false, mensaje: 'Ya existe un salón con ese nombre.' });
@@ -591,7 +619,7 @@ app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => 
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.json({ ok: true, dato: result.rows[0] });
+    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
   } catch (err) {
     console.error('Error en PUT /api/salones/:id/mobiliario:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al guardar el mobiliario.' });
@@ -614,7 +642,8 @@ app.post('/api/salones/:id/fotos', requireBitacoraAuth, uploadSalonFoto.single('
   if (!req.file) {
     return res.status(400).json({ ok: false, mensaje: 'Selecciona una imagen JPG, PNG, GIF o WebP.' });
   }
-  const url = `/api/salones/uploads/${req.file.filename}`;
+  const nombre = path.basename(req.file.filename, path.extname(req.file.filename));
+  const url = `/api/salones/foto/${nombre}`;
   try {
     const result = await bitacoraPool.query(
       `UPDATE campus_rooms
@@ -627,7 +656,7 @@ app.post('/api/salones/:id/fotos', requireBitacoraAuth, uploadSalonFoto.single('
       fs.unlink(req.file.path, () => {});
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.status(201).json({ ok: true, dato: result.rows[0] });
+    res.status(201).json({ ok: true, dato: presentSalon(result.rows[0]) });
   } catch (err) {
     fs.unlink(req.file.path, () => {});
     console.error('Error en POST /api/salones/:id/fotos:', err);
@@ -639,7 +668,8 @@ app.delete('/api/salones/:id/fotos', requireBitacoraAuth, async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const id = Number.parseInt(req.params.id, 10);
   const url = String(req.body?.url || '');
-  if (!Number.isInteger(id) || id <= 0 || !url.startsWith('/api/salones/uploads/')) {
+  const nombre = path.basename(url).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+  if (!Number.isInteger(id) || id <= 0 || !/^[a-zA-Z0-9_-]+$/.test(nombre)) {
     return res.status(400).json({ ok: false, mensaje: 'No se pudo identificar la fotografía.' });
   }
   try {
@@ -648,18 +678,18 @@ app.delete('/api/salones/:id/fotos', requireBitacoraAuth, async (req, res) => {
        SET photos = COALESCE((
          SELECT jsonb_agg(item)
          FROM jsonb_array_elements(COALESCE(photos, '[]'::jsonb)) item
-         WHERE item <> to_jsonb($1::text)
+         WHERE regexp_replace(item #>> '{}', '^.*/|\\.(jpe?g|png|gif|webp)$', '', 'gi') <> $1
        ), '[]'::jsonb), updated_at = NOW()
        WHERE id = $2
        ${SALON_RETURNING}`,
-      [url, id]
+      [nombre, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    const archivo = path.join(UPLOADS_SALONES_DIR, path.basename(url));
-    if (fs.existsSync(archivo)) fs.unlinkSync(archivo);
-    res.json({ ok: true, dato: result.rows[0] });
+    const archivo = archivoDeFotoSalon(nombre);
+    if (archivo) fs.unlinkSync(archivo);
+    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
   } catch (err) {
     console.error('Error en DELETE /api/salones/:id/fotos:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al eliminar la fotografía.' });
