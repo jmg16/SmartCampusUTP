@@ -107,22 +107,30 @@
           </select>
         </div>
 
-        @if (salonActivo(); as espacio) {
-          <div>
-            <h3 class="text-base font-bold text-gray-900">Mobiliario de {{ espacio.nombre }}</h3>
-            <p class="mt-1 text-sm text-gray-600">Objeto, cantidad y número de serie.</p>
-            <div class="mt-4 flex flex-col gap-3 sm:flex-row">
-              <select [value]="pieza" (change)="pieza = $any($event.target).value" aria-label="Objeto" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
+        <div>
+          <h3 class="text-base font-bold text-gray-900">Mobiliario{{ salonActivo() ? ' de ' + salonActivo()!.nombre : '' }}</h3>
+          <div class="mt-4 grid gap-3 sm:grid-cols-[1fr_7rem_1fr_auto] sm:items-end">
+            <div>
+              <label for="objeto" class="mb-1 block text-sm font-medium text-gray-700">Objeto *</label>
+              <select id="objeto" [value]="pieza" (change)="pieza = $any($event.target).value" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
                 @for (objeto of catalogoMobiliario; track objeto) {
                   <option [value]="objeto">{{ objeto }}</option>
                 }
               </select>
-              <input type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" aria-label="Cantidad" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20 sm:w-28" />
-              <input type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" aria-label="Número de serie" class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-              <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
-                {{ guardandoMobiliario() ? 'Guardando...' : 'Agregar' }}
-              </button>
             </div>
+            <div>
+              <label for="cantidad" class="mb-1 block text-sm font-medium text-gray-700">Cantidad *</label>
+              <input id="cantidad" type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <div>
+              <label for="serie" class="mb-1 block text-sm font-medium text-gray-700">Número de serie *</label>
+              <input id="serie" type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
+            </div>
+            <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
+              {{ guardandoMobiliario() ? 'Guardando...' : 'Agregar' }}
+            </button>
+          </div>
+          @if (salonActivo(); as espacio) {
             @if (espacio.mobiliario.length) {
               <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @for (item of espacio.mobiliario; track item.serie; let i = $index) {
@@ -136,28 +144,30 @@
                 }
               </ul>
             }
-          </div>
+          }
+        </div>
 
-          <div class="border-t border-gray-100 pt-6">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 class="text-base font-bold text-gray-900">Fotografías</h3>
-                <p class="mt-1 text-sm text-gray-600">Tomar foto abre la cámara. Subir foto usa una imagen del dispositivo.</p>
-              </div>
-              <div class="flex flex-col gap-2 sm:flex-row">
-                <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white hover:bg-utp-blue/90">
-                  Tomar foto
-                  <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="agregarFoto($event)" />
-                </label>
-                <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-utp-blue px-5 py-3 font-semibold text-utp-blue hover:bg-utp-blue/5">
-                  Subir foto
-                  <input type="file" accept="image/*" class="sr-only" (change)="agregarFoto($event)" />
-                </label>
-              </div>
+        <div class="border-t border-gray-100 pt-6">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-base font-bold text-gray-900">Fotografías</h3>
+              <p class="mt-1 text-sm text-gray-600">Tomar foto abre la cámara. Subir imagen usa un archivo del dispositivo.</p>
             </div>
-            @if (guardandoFoto()) {
-              <p class="mt-4 text-sm text-gray-500">Guardando fotografía...</p>
-            }
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white hover:bg-utp-blue/90">
+                Tomar foto
+                <input type="file" accept="image/*" capture="environment" class="sr-only" (change)="agregarFoto($event)" />
+              </label>
+              <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-utp-blue px-5 py-3 font-semibold text-utp-blue hover:bg-utp-blue/5">
+                Subir imagen
+                <input type="file" accept="image/*" class="sr-only" (change)="agregarFoto($event)" />
+              </label>
+            </div>
+          </div>
+          @if (guardandoFoto()) {
+            <p class="mt-4 text-sm text-gray-500">Guardando fotografía...</p>
+          }
+          @if (salonActivo(); as espacio) {
             @if (espacio.fotos.length) {
               <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @for (foto of espacio.fotos; track foto) {
@@ -168,11 +178,11 @@
                 }
               </div>
             }
-          </div>
-
-          @if (mensajeInventario()) {
-            <p class="text-sm text-gray-700">{{ mensajeInventario() }}</p>
           }
+        </div>
+
+        @if (mensajeInventario()) {
+          <p class="text-sm text-gray-700">{{ mensajeInventario() }}</p>
         }
       </div>
     </section>

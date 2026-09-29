@@ -183,7 +183,11 @@ export class SalonesDashboardComponent implements OnInit {
     const nombre = this.pieza.trim();
     const serie = this.seriePieza.trim();
     const cantidad = Number(this.cantidadPieza);
-    if (!espacio || !nombre || !serie || !Number.isInteger(cantidad) || cantidad < 1) {
+    if (!espacio) {
+      this.mensajeInventario.set('Selecciona el salón antes de agregar mobiliario.');
+      return;
+    }
+    if (!nombre || !serie || !Number.isInteger(cantidad) || cantidad < 1) {
       this.mensajeInventario.set('Indica el objeto, la cantidad y el número de serie.');
       return;
     }
@@ -205,7 +209,11 @@ export class SalonesDashboardComponent implements OnInit {
     const archivo = input.files?.[0];
     input.value = '';
     const espacio = this.salonActivo();
-    if (!archivo || !espacio) return;
+    if (!archivo) return;
+    if (!espacio) {
+      this.mensajeInventario.set('Selecciona el salón antes de guardar la fotografía.');
+      return;
+    }
     this.guardandoFoto.set(true);
     this.mensajeInventario.set(null);
     this.salonesService.subirFoto(espacio.id, archivo).subscribe({
