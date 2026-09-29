@@ -46,6 +46,11 @@ if (!fs.existsSync(UPLOADS_SALONES_DIR)) {
   fs.mkdirSync(UPLOADS_SALONES_DIR, { recursive: true });
 }
 
+const UPLOADS_EDIFICIOS_DIR = path.join(__dirname, 'uploads', 'edificios');
+if (!fs.existsSync(UPLOADS_EDIFICIOS_DIR)) {
+  fs.mkdirSync(UPLOADS_EDIFICIOS_DIR, { recursive: true });
+}
+
 const UPLOADS_EVENTOS_DIR = path.join(__dirname, 'uploads', 'eventos');
 if (!fs.existsSync(UPLOADS_EVENTOS_DIR)) {
   fs.mkdirSync(UPLOADS_EVENTOS_DIR, { recursive: true });
@@ -98,6 +103,20 @@ const storageSalones = multer.diskStorage({
 });
 const uploadSalonFoto = multer({
   storage: storageSalones,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
+  },
+});
+
+const uploadEdificioFoto = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_EDIFICIOS_DIR),
+    filename: (_req, file, cb) => {
+      const ext = (path.extname(file.originalname) || '.jpg').toLowerCase().replace(/[^a-z.]/g, '') || '.jpg';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext.startsWith('.') ? ext : `.${ext}`}`);
+    },
+  }),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
@@ -341,6 +360,55 @@ async function ensureModelLibraryTable() {
   }
 }
 
+async function ensureEdificiosTable() {
+  if (!bitacoraPool) return;
+  try {
+    await bitacoraPool.query(`
+      CREATE TABLE IF NOT EXISTS campus_buildings (
+        id         SERIAL PRIMARY KEY,
+        slug       VARCHAR(180) NOT NULL UNIQUE,
+        name       VARCHAR(255) NOT NULL UNIQUE,
+        levels     INTEGER NOT NULL DEFAULT 1 CHECK (levels > 0),
+        photo      TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    // Los salones guardaban el edificio como texto: se convierten en registros.
+    const previos = await bitacoraPool.query(
+      `SELECT DISTINCT building FROM campus_rooms WHERE COALESCE(building, '') <> ''`
+    );
+    for (const fila of previos.rows) {
+      await bitacoraPool.query(
+        `INSERT INTO campus_buildings (slug, name) VALUES ($1, $2)
+         ON CONFLICT (name) DO NOTHING`,
+        [slugifySalon(fila.building), fila.building]
+      );
+    }
+    await bitacoraPool.query(`
+      ALTER TABLE campus_rooms
+      ADD COLUMN IF NOT EXISTS building_id INTEGER REFERENCES campus_buildings (id) ON DELETE SET NULL
+    `);
+    await bitacoraPool.query(`
+      UPDATE campus_rooms r
+      SET building_id = b.id
+      FROM campus_buildings b
+      WHERE r.building_id IS NULL AND r.building = b.name
+    `);
+    await bitacoraPool.query(`
+      CREATE INDEX IF NOT EXISTS idx_campus_rooms_building
+      ON campus_rooms (building_id)
+    `);
+    // Un edificio puede mostrar el modelo 3D que ya está en la librería.
+    await bitacoraPool.query(`
+      ALTER TABLE campus_buildings
+      ADD COLUMN IF NOT EXISTS model_id INTEGER REFERENCES model_library (id) ON DELETE SET NULL
+    `);
+  } catch (err) {
+    console.error('[edificios] No se pudo asegurar la tabla campus_buildings:', err.message);
+  }
+}
+
 async function ensureSalonesTable() {
   if (!bitacoraPool) return;
   try {
@@ -422,13 +490,232 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Smart Campus API' });
 });
 
+// --- Edificios del campus ---
+
+const EDIFICIO_SELECT = `
+  SELECT b.id, b.slug, b.name AS nombre, b.levels AS niveles, b.photo AS foto,
+         b.model_id AS modelo_id, m.name AS modelo_nombre, m.file_url AS modelo_url,
+         (SELECT COUNT(*) FROM campus_rooms r WHERE r.building_id = b.id)::int AS salones,
+         b.created_at, b.updated_at
+  FROM campus_buildings b
+  LEFT JOIN model_library m ON m.id = b.model_id
+`;
+
+function archivoDeFotoEdificio(url) {
+  const nombre = path.basename(String(url || '')).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+  if (!nombre || !/^[a-zA-Z0-9_-]+$/.test(nombre)) return null;
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+    const archivo = path.join(UPLOADS_EDIFICIOS_DIR, nombre + ext);
+    if (fs.existsSync(archivo)) return archivo;
+  }
+  return null;
+}
+
+function parseEdificioPayload(body) {
+  const source = body || {};
+  const niveles = Number.parseInt(source.niveles, 10);
+  const modeloId = Number.parseInt(source.modelo_id, 10);
+  const data = {
+    nombre: String(source.nombre || '').trim(),
+    niveles: Number.isInteger(niveles) ? niveles : NaN,
+    modelo_id: Number.isInteger(modeloId) && modeloId > 0 ? modeloId : null,
+  };
+  const valid = data.nombre && Number.isInteger(data.niveles) && data.niveles > 0 && data.niveles < 100;
+  return { data, valid: Boolean(valid) };
+}
+
+async function edificioPorId(id) {
+  const result = await bitacoraPool.query(`${EDIFICIO_SELECT} WHERE b.id = $1`, [id]);
+  return result.rows[0] || null;
+}
+
+app.get('/api/edificios/foto/:nombre', (req, res) => {
+  const archivo = archivoDeFotoEdificio(req.params.nombre);
+  if (!archivo) return res.status(404).end();
+  res.sendFile(archivo);
+});
+
+app.get('/api/edificios', async (_req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  try {
+    const result = await bitacoraPool.query(`${EDIFICIO_SELECT} ORDER BY b.name ASC`);
+    res.json({ ok: true, datos: result.rows });
+  } catch (err) {
+    console.error('Error en GET /api/edificios:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener los edificios.' });
+  }
+});
+
+app.get('/api/edificios/:slug', async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  try {
+    const result = await bitacoraPool.query(`${EDIFICIO_SELECT} WHERE b.slug = $1`, [req.params.slug]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Edificio no encontrado.' });
+    }
+    res.json({ ok: true, dato: result.rows[0] });
+  } catch (err) {
+    console.error('Error en GET /api/edificios/:slug:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener el edificio.' });
+  }
+});
+
+app.post('/api/edificios', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const { data, valid } = parseEdificioPayload(req.body);
+  if (!valid) {
+    return res.status(400).json({ ok: false, mensaje: 'Indica el nombre y la cantidad de niveles.' });
+  }
+  const slug = slugifySalon(data.nombre);
+  if (!slug) {
+    return res.status(400).json({ ok: false, mensaje: 'El nombre del edificio no es válido.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      'INSERT INTO campus_buildings (slug, name, levels, model_id) VALUES ($1, $2, $3, $4) RETURNING id',
+      [slug, data.nombre, data.niveles, data.modelo_id]
+    );
+    res.status(201).json({ ok: true, dato: await edificioPorId(result.rows[0].id) });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ ok: false, mensaje: 'Ya existe un edificio con ese nombre.' });
+    }
+    console.error('Error en POST /api/edificios:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al crear el edificio.' });
+  }
+});
+
+app.put('/api/edificios/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  const { data, valid } = parseEdificioPayload(req.body);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!valid) {
+    return res.status(400).json({ ok: false, mensaje: 'Indica el nombre y la cantidad de niveles.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      `UPDATE campus_buildings SET name = $1, levels = $2, model_id = $3, updated_at = NOW()
+       WHERE id = $4 RETURNING id`,
+      [data.nombre, data.niveles, data.modelo_id, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Edificio no encontrado.' });
+    }
+    // Los salones muestran el nombre del edificio, así que se actualiza con él.
+    await bitacoraPool.query('UPDATE campus_rooms SET building = $1 WHERE building_id = $2', [
+      data.nombre,
+      id,
+    ]);
+    res.json({ ok: true, dato: await edificioPorId(id) });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ ok: false, mensaje: 'Ya existe un edificio con ese nombre.' });
+    }
+    console.error('Error en PUT /api/edificios/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al actualizar el edificio.' });
+  }
+});
+
+app.post('/api/edificios/:id/foto', requireBitacoraAuth, uploadEdificioFoto.single('foto'), async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ ok: false, mensaje: 'Selecciona una imagen JPG, PNG, GIF o WebP.' });
+  }
+  const url = `/api/edificios/foto/${path.basename(req.file.filename, path.extname(req.file.filename))}`;
+  try {
+    const previo = await bitacoraPool.query('SELECT photo FROM campus_buildings WHERE id = $1', [id]);
+    if (previo.rows.length === 0) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ ok: false, mensaje: 'Edificio no encontrado.' });
+    }
+    await bitacoraPool.query(
+      'UPDATE campus_buildings SET photo = $1, updated_at = NOW() WHERE id = $2',
+      [url, id]
+    );
+    const anterior = archivoDeFotoEdificio(previo.rows[0].photo);
+    if (anterior) fs.unlink(anterior, () => {});
+    res.status(201).json({ ok: true, dato: await edificioPorId(id) });
+  } catch (err) {
+    fs.unlink(req.file.path, () => {});
+    console.error('Error en POST /api/edificios/:id/foto:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al guardar la fotografía.' });
+  }
+});
+
+app.delete('/api/edificios/:id/foto', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const result = await bitacoraPool.query(
+      'UPDATE campus_buildings SET photo = NULL, updated_at = NOW() WHERE id = $1 RETURNING id',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Edificio no encontrado.' });
+    }
+    const archivo = archivoDeFotoEdificio(String(req.body?.url || ''));
+    if (archivo) fs.unlink(archivo, () => {});
+    res.json({ ok: true, dato: await edificioPorId(id) });
+  } catch (err) {
+    console.error('Error en DELETE /api/edificios/:id/foto:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al eliminar la fotografía.' });
+  }
+});
+
+app.delete('/api/edificios/:id', requireBitacoraAuth, async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  try {
+    const salones = await bitacoraPool.query(
+      'SELECT COUNT(*)::int AS total FROM campus_rooms WHERE building_id = $1',
+      [id]
+    );
+    if (salones.rows[0].total > 0) {
+      return res.status(409).json({
+        ok: false,
+        mensaje: 'Este edificio todavía tiene salones. Elimínalos primero.',
+      });
+    }
+    const previo = await bitacoraPool.query(
+      'DELETE FROM campus_buildings WHERE id = $1 RETURNING photo',
+      [id]
+    );
+    if (previo.rows.length === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Edificio no encontrado.' });
+    }
+    const archivo = archivoDeFotoEdificio(previo.rows[0].photo);
+    if (archivo) fs.unlink(archivo, () => {});
+    res.json({ ok: true, mensaje: 'Edificio eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error en DELETE /api/edificios/:id:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al eliminar el edificio.' });
+  }
+});
+
 // --- Salones del campus ---
 
 const SALON_SELECT = `
-  SELECT id, slug, name AS nombre, type AS tipo, building AS edificio,
-         location AS ubicacion, capacity AS capacidad, description AS descripcion,
-         features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at
-  FROM campus_rooms
+  SELECT r.id, r.slug, r.name AS nombre, r.type AS tipo,
+         COALESCE(b.name, r.building) AS edificio, r.building_id AS edificio_id,
+         r.location AS ubicacion, r.capacity AS capacidad, r.description AS descripcion,
+         r.features AS caracteristicas, r.furniture AS mobiliario, r.photos AS fotos,
+         r.created_at, r.updated_at
+  FROM campus_rooms r
+  LEFT JOIN campus_buildings b ON b.id = r.building_id
 `;
 
 function parseMobiliario(value) {
@@ -464,10 +751,12 @@ function parseSalonPayload(body) {
   const caracteristicas = Array.isArray(source.caracteristicas)
     ? source.caracteristicas.map((item) => String(item).trim()).filter(Boolean)
     : [];
+  const edificioId = Number.parseInt(source.edificio_id, 10);
   const data = {
     nombre: String(source.nombre || '').trim(),
     tipo: String(source.tipo || '').trim(),
     edificio: String(source.edificio || '').trim(),
+    edificio_id: Number.isInteger(edificioId) && edificioId > 0 ? edificioId : null,
     ubicacion: String(source.ubicacion || '').trim(),
     capacidad,
     descripcion: String(source.descripcion || '').trim(),
@@ -476,7 +765,7 @@ function parseSalonPayload(body) {
   const valid =
     data.nombre &&
     data.tipo &&
-    data.edificio &&
+    (data.edificio_id || data.edificio) &&
     Number.isInteger(data.capacidad) &&
     data.capacidad > 0 &&
     data.descripcion;
@@ -505,16 +794,42 @@ function archivoDeFotoSalon(url) {
   return null;
 }
 
+async function salonPorId(id) {
+  const result = await bitacoraPool.query(`${SALON_SELECT} WHERE r.id = $1`, [id]);
+  return result.rows.length ? presentSalon(result.rows[0]) : null;
+}
+
+// El salón guarda el edificio enlazado y también su nombre, para las vistas que solo muestran texto.
+async function resolverEdificio(data) {
+  if (data.edificio_id) {
+    const result = await bitacoraPool.query('SELECT id, name FROM campus_buildings WHERE id = $1', [
+      data.edificio_id,
+    ]);
+    if (result.rows.length === 0) return null;
+    return { id: result.rows[0].id, nombre: result.rows[0].name };
+  }
+  const result = await bitacoraPool.query('SELECT id, name FROM campus_buildings WHERE name = $1', [
+    data.edificio,
+  ]);
+  if (result.rows.length) return { id: result.rows[0].id, nombre: result.rows[0].name };
+  return { id: null, nombre: data.edificio };
+}
+
 app.get('/api/salones/foto/:nombre', (req, res) => {
   const archivo = archivoDeFotoSalon(req.params.nombre);
   if (!archivo) return res.status(404).end();
   res.sendFile(archivo);
 });
 
-app.get('/api/salones', async (_req, res) => {
+app.get('/api/salones', async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
+  const edificioId = Number.parseInt(req.query.edificio_id, 10);
   try {
-    const result = await bitacoraPool.query(`${SALON_SELECT} ORDER BY name ASC`);
+    const result = Number.isInteger(edificioId)
+      ? await bitacoraPool.query(`${SALON_SELECT} WHERE r.building_id = $1 ORDER BY r.name ASC`, [
+          edificioId,
+        ])
+      : await bitacoraPool.query(`${SALON_SELECT} ORDER BY r.name ASC`);
     res.json({ ok: true, datos: result.rows.map(presentSalon) });
   } catch (err) {
     console.error('Error en GET /api/salones:', err);
@@ -525,7 +840,7 @@ app.get('/api/salones', async (_req, res) => {
 app.get('/api/salones/:slug', async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   try {
-    const result = await bitacoraPool.query(`${SALON_SELECT} WHERE slug = $1`, [req.params.slug]);
+    const result = await bitacoraPool.query(`${SALON_SELECT} WHERE r.slug = $1`, [req.params.slug]);
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
@@ -547,15 +862,17 @@ app.post('/api/salones', requireBitacoraAuth, async (req, res) => {
     return res.status(400).json({ ok: false, mensaje: 'El nombre del salón no es válido.' });
   }
   try {
+    const edificio = await resolverEdificio(data);
+    if (!edificio) {
+      return res.status(400).json({ ok: false, mensaje: 'El edificio indicado no existe.' });
+    }
     const result = await bitacoraPool.query(
-      `INSERT INTO campus_rooms (slug, name, type, building, location, capacity, description, features)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
-                 location AS ubicacion, capacity AS capacidad, description AS descripcion,
-                 features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
-      [slug, data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas]
+      `INSERT INTO campus_rooms (slug, name, type, building, building_id, location, capacity, description, features)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id`,
+      [slug, data.nombre, data.tipo, edificio.nombre, edificio.id, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas]
     );
-    res.status(201).json({ ok: true, dato: presentSalon(result.rows[0]) });
+    res.status(201).json({ ok: true, dato: await salonPorId(result.rows[0].id) });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ ok: false, mensaje: 'Ya existe un salón con ese nombre.' });
@@ -576,20 +893,22 @@ app.put('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
     return res.status(400).json({ ok: false, mensaje: 'Completa todos los campos requeridos del salón.' });
   }
   try {
+    const edificio = await resolverEdificio(data);
+    if (!edificio) {
+      return res.status(400).json({ ok: false, mensaje: 'El edificio indicado no existe.' });
+    }
     const result = await bitacoraPool.query(
       `UPDATE campus_rooms
-       SET name = $1, type = $2, building = $3, location = $4, capacity = $5,
-           description = $6, features = $7, updated_at = NOW()
-       WHERE id = $8
-       RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
-                 location AS ubicacion, capacity AS capacidad, description AS descripcion,
-                 features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
-      [data.nombre, data.tipo, data.edificio, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, id]
+       SET name = $1, type = $2, building = $3, building_id = $4, location = $5, capacity = $6,
+           description = $7, features = $8, updated_at = NOW()
+       WHERE id = $9
+       RETURNING id`,
+      [data.nombre, data.tipo, edificio.nombre, edificio.id, data.ubicacion, data.capacidad, data.descripcion, data.caracteristicas, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
+    res.json({ ok: true, dato: await salonPorId(id) });
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ ok: false, mensaje: 'Ya existe un salón con ese nombre.' });
@@ -611,26 +930,20 @@ app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => 
       `UPDATE campus_rooms
        SET furniture = $1::jsonb, updated_at = NOW()
        WHERE id = $2
-       RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
-                 location AS ubicacion, capacity AS capacidad, description AS descripcion,
-                 features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at`,
+       RETURNING id`,
       [JSON.stringify(mobiliario), id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
+    res.json({ ok: true, dato: await salonPorId(id) });
   } catch (err) {
     console.error('Error en PUT /api/salones/:id/mobiliario:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al guardar el mobiliario.' });
   }
 });
 
-const SALON_RETURNING = `
-  RETURNING id, slug, name AS nombre, type AS tipo, building AS edificio,
-            location AS ubicacion, capacity AS capacidad, description AS descripcion,
-            features AS caracteristicas, furniture AS mobiliario, photos AS fotos, created_at, updated_at
-`;
+const SALON_RETURNING = 'RETURNING id';
 
 app.post('/api/salones/:id/fotos', requireBitacoraAuth, uploadSalonFoto.single('foto'), async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
@@ -656,7 +969,7 @@ app.post('/api/salones/:id/fotos', requireBitacoraAuth, uploadSalonFoto.single('
       fs.unlink(req.file.path, () => {});
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
-    res.status(201).json({ ok: true, dato: presentSalon(result.rows[0]) });
+    res.status(201).json({ ok: true, dato: await salonPorId(id) });
   } catch (err) {
     fs.unlink(req.file.path, () => {});
     console.error('Error en POST /api/salones/:id/fotos:', err);
@@ -689,7 +1002,7 @@ app.delete('/api/salones/:id/fotos', requireBitacoraAuth, async (req, res) => {
     }
     const archivo = archivoDeFotoSalon(nombre);
     if (archivo) fs.unlinkSync(archivo);
-    res.json({ ok: true, dato: presentSalon(result.rows[0]) });
+    res.json({ ok: true, dato: await salonPorId(id) });
   } catch (err) {
     console.error('Error en DELETE /api/salones/:id/fotos:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al eliminar la fotografía.' });
@@ -1623,8 +1936,10 @@ app.get('/', (_req, res) => {
 });
 
 ensureEventosTable();
-ensureModelLibraryTable();
-ensureSalonesTable();
+// Los edificios se apoyan en las tablas de salones y de modelos 3D, así que van al final.
+ensureModelLibraryTable()
+  .then(ensureSalonesTable)
+  .then(ensureEdificiosTable);
 
 app.listen(PORT, () => {
   console.log(`API Smart Campus escuchando en http://localhost:${PORT}`);

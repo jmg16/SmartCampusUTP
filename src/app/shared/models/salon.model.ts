@@ -9,6 +9,7 @@ export interface Salon {
   slug: string;
   nombre: string;
   edificio: string;
+  edificio_id: number | null;
   ubicacion: string;
   capacidad: number;
   tipo: string;
@@ -20,4 +21,7 @@ export interface Salon {
   updated_at?: string;
 }
 
-export type SalonPayload = Omit<Salon, 'id' | 'slug' | 'mobiliario' | 'fotos' | 'created_at' | 'updated_at'>;
+export type SalonPayload = Omit<
+  Salon,
+  'id' | 'slug' | 'edificio' | 'mobiliario' | 'fotos' | 'created_at' | 'updated_at'
+>;

@@ -16,9 +16,10 @@ export class SalonesService {
       : new HttpHeaders();
   }
 
-  list(): Observable<Salon[]> {
+  list(edificioId?: number): Observable<Salon[]> {
+    const url = edificioId ? `/api/salones?edificio_id=${edificioId}` : '/api/salones';
     return this.http
-      .get<{ ok: boolean; datos: Salon[] }>('/api/salones')
+      .get<{ ok: boolean; datos: Salon[] }>(url)
       .pipe(map((response) => response.datos ?? []));
   }
 

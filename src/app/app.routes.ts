@@ -95,6 +95,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin/edificios/:slug',
+    canActivate: [bitacoraAuthGuard],
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/edificio-admin/edificio-admin.component').then(
+        (m) => m.EdificioAdminComponent
+      ),
+  },
+  {
+    path: 'admin/edificios',
+    canActivate: [bitacoraAuthGuard],
+    loadComponent: () =>
+      import('./features/admin/presentation/pages/edificios-dashboard/edificios-dashboard.component').then(
+        (m) => m.EdificiosDashboardComponent
+      ),
+  },
+  {
     path: 'admin/salones/:slug',
     canActivate: [bitacoraAuthGuard],
     loadComponent: () =>
@@ -102,13 +118,6 @@ export const routes: Routes = [
         (m) => m.SalonAdminComponent
       ),
   },
-  {
-    path: 'admin/salones',
-    canActivate: [bitacoraAuthGuard],
-    loadComponent: () =>
-      import('./features/admin/presentation/pages/salones-dashboard/salones-dashboard.component').then(
-        (m) => m.SalonesDashboardComponent
-      ),
-  },
+  { path: 'admin/salones', redirectTo: 'admin/edificios', pathMatch: 'full' },
   { path: '**', redirectTo: '' },
 ];
