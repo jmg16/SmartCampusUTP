@@ -1,4 +1,4 @@
-import { CUSTOM_ELEMENTS_SCHEMA, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,7 +16,7 @@ import '@google/model-viewer';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './edificio-admin.component.html',
 })
-export class EdificioAdminComponent implements OnInit, OnDestroy {
+export class EdificioAdminComponent implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -36,8 +36,6 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
   guardandoFoto = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
-  vistaPrevia = signal<string | null>(null);
-  private fotoPendiente: File | null = null;
 
   form = this.fb.group({
     id: [null as number | null],
@@ -176,25 +174,16 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
     input.value = '';
-    if (!archivo) return;
-    this.limpiarVistaPrevia();
-    this.fotoPendiente = archivo;
-    this.vistaPrevia.set(URL.createObjectURL(archivo));
-    this.error.set(null);
-  }
-
-  guardarFoto(): void {
     const edificio = this.edificio();
-    const archivo = this.fotoPendiente;
     if (!edificio || !archivo || this.guardandoFoto()) return;
     this.guardandoFoto.set(true);
     this.error.set(null);
+    this.success.set(null);
     this.edificiosService.subirFoto(edificio.id, archivo).subscribe({
       next: (actualizado) => {
         this.edificio.set(actualizado);
-        this.limpiarVistaPrevia();
         this.guardandoFoto.set(false);
-        this.success.set('Fotografía guardada.');
+        this.success.set('Portada actualizada.');
       },
       error: (err) => {
         this.guardandoFoto.set(false);
@@ -203,28 +192,8 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
     });
   }
 
-  eliminarFoto(): void {
-    const edificio = this.edificio();
-    if (!edificio || !edificio.foto) return;
-    this.edificiosService.eliminarFoto(edificio.id, edificio.foto).subscribe({
-      next: (actualizado) => this.edificio.set(actualizado),
-      error: (err) => this.error.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
-    });
-  }
-
   cerrarSesion(): void {
     this.auth.logout();
     void this.router.navigateByUrl('/admin/login');
-  }
-
-  ngOnDestroy(): void {
-    this.limpiarVistaPrevia();
-  }
-
-  private limpiarVistaPrevia(): void {
-    const previa = this.vistaPrevia();
-    if (previa) URL.revokeObjectURL(previa);
-    this.vistaPrevia.set(null);
-    this.fotoPendiente = null;
   }
 }
