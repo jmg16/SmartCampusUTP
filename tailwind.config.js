@@ -12,6 +12,10 @@ module.exports = {
           dark: '#002244',
         },
         'utp-accent': '#0066b3',
+        'utp-purple': {
+          DEFAULT: '#8C5AF0',
+          dark: '#5F37AA',
+        },
       },
       fontFamily: {
         sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
