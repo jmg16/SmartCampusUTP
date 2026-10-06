@@ -45,15 +45,23 @@
             </div>
           </div>
 
-          <div>
-            <label for="modelo" class="mb-1 block text-sm font-medium text-gray-700">Modelo 3D</label>
-            <select id="modelo" formControlName="modelo_id" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
-              <option [ngValue]="null">Sin modelo 3D</option>
-              @for (modelo of modelos(); track modelo.id) {
-                <option [ngValue]="modelo.id">{{ modelo.name }} — {{ modelo.category }}</option>
-              }
-            </select>
-            <p class="mt-1 text-xs text-gray-500">Se toma de la librería 3D que ya tienes cargada.</p>
+          <div class="grid gap-4 sm:grid-cols-[1fr_12rem] sm:items-start">
+            <div>
+              <label for="imagen-edificio" class="mb-1 block text-sm font-medium text-gray-700">
+                Imagen 3D del edificio <span class="font-normal text-gray-500">(opcional)</span>
+              </label>
+              <input
+                id="imagen-edificio"
+                type="file"
+                accept="image/*"
+                (change)="elegirImagen($event)"
+                class="block w-full rounded-lg border border-gray-300 bg-white text-sm text-gray-600 file:mr-4 file:border-0 file:bg-utp-blue file:px-4 file:py-2.5 file:font-semibold file:text-white hover:file:bg-utp-blue-dark"
+              />
+              <p class="mt-1 text-xs text-gray-500">Puedes guardar el edificio sin imagen y agregarla más adelante.</p>
+            </div>
+            @if (vistaPrevia(); as imagen) {
+              <img [src]="imagen" alt="Vista previa del edificio" class="h-28 w-full rounded-xl border border-gray-200 bg-gray-50 object-cover" />
+            }
           </div>
 
           <div class="flex items-center justify-between gap-3 pt-2">
@@ -89,6 +97,7 @@
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           @for (edificio of datos(); track edificio.id) {
             <article
+              [attr.id]="'edificio-' + edificio.id"
               [routerLink]="['/admin/edificios', edificio.slug]"
               class="block cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:border-utp-blue/40"
             >

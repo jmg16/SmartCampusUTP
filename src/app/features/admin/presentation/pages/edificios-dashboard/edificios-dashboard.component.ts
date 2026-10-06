@@ -1,11 +1,10 @@
 import { CUSTOM_ELEMENTS_SCHEMA, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { of, switchMap } from 'rxjs';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
-import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { Edificio } from '../../../../../shared/models/edificio.model';
-import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
 import '@google/model-viewer';
 
 @Component({
@@ -18,42 +17,45 @@ import '@google/model-viewer';
 export class EdificiosDashboardComponent implements OnInit {
   private fb = inject(FormBuilder);
   private edificiosService = inject(EdificiosService);
-  private modelos3d = inject(Modelos3dService);
   private auth = inject(BitacoraService);
   private router = inject(Router);
+  private imagenPendiente: File | null = null;
+  private vistaPreviaLocal: string | null = null;
 
   datos = signal<Edificio[]>([]);
-  modelos = signal<Modelo3D[]>([]);
   cargandoLista = signal(false);
   guardando = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
+  vistaPrevia = signal<string | null>(null);
 
   form = this.fb.group({
     id: [null as number | null],
     nombre: ['', [Validators.required, Validators.maxLength(255)]],
     niveles: [1, [Validators.required, Validators.min(1), Validators.max(99)]],
-    modelo_id: [null as number | null],
   });
 
   ngOnInit(): void {
     this.cargar();
-    this.modelos3d.list(200).subscribe({
-      next: (modelos) => this.modelos.set(modelos),
-      error: () => this.modelos.set([]),
-    });
   }
 
   get editando(): boolean {
     return this.form.controls.id.value !== null;
   }
 
-  cargar(): void {
+  cargar(edificioId?: number): void {
     this.cargandoLista.set(true);
     this.edificiosService.list().subscribe({
       next: (edificios) => {
         this.datos.set(edificios);
         this.cargandoLista.set(false);
+        if (edificioId) {
+          setTimeout(() => {
+            document
+              .getElementById(`edificio-${edificioId}`)
+              ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 80);
+        }
       },
       error: (err) => {
         this.error.set(err?.error?.mensaje || 'No se pudieron cargar los edificios.');
@@ -67,15 +69,31 @@ export class EdificiosDashboardComponent implements OnInit {
       id: edificio.id,
       nombre: edificio.nombre,
       niveles: edificio.niveles,
-      modelo_id: edificio.modelo_id,
     });
+    this.limpiarVistaPrevia();
+    this.vistaPrevia.set(edificio.foto);
     this.error.set(null);
     this.success.set(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   limpiarFormulario(): void {
-    this.form.reset({ id: null, nombre: '', niveles: 1, modelo_id: null });
+    this.form.reset({ id: null, nombre: '', niveles: 1 });
+    this.imagenPendiente = null;
+    this.limpiarVistaPrevia();
+    const input = document.getElementById('imagen-edificio') as HTMLInputElement | null;
+    if (input) input.value = '';
+  }
+
+  elegirImagen(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+    this.imagenPendiente = archivo;
+    this.limpiarVistaPrevia();
+    if (archivo) {
+      this.vistaPreviaLocal = URL.createObjectURL(archivo);
+      this.vistaPrevia.set(this.vistaPreviaLocal);
+    }
   }
 
   enviar(): void {
@@ -84,8 +102,10 @@ export class EdificiosDashboardComponent implements OnInit {
     const payload = {
       nombre: String(value.nombre).trim(),
       niveles: Number(value.niveles),
-      modelo_id: value.modelo_id ? Number(value.modelo_id) : null,
+      modelo_id: null,
     };
+    const imagen = this.imagenPendiente;
+    const estabaEditando = Boolean(value.id);
 
     this.guardando.set(true);
     this.error.set(null);
@@ -94,18 +114,30 @@ export class EdificiosDashboardComponent implements OnInit {
       ? this.edificiosService.update(value.id, payload)
       : this.edificiosService.create(payload);
 
-    request.subscribe({
-      next: () => {
+    request
+      .pipe(
+        switchMap((edificio) =>
+          imagen ? this.edificiosService.subirFoto(edificio.id, imagen) : of(edificio)
+        )
+      )
+      .subscribe({
+      next: (edificio) => {
         this.guardando.set(false);
-        this.success.set(value.id ? 'Edificio actualizado.' : 'Edificio creado.');
+        this.success.set(estabaEditando ? 'Edificio actualizado.' : 'Edificio creado.');
         this.limpiarFormulario();
-        this.cargar();
+        this.cargar(edificio.id);
       },
       error: (err) => {
         this.guardando.set(false);
         this.error.set(err?.error?.mensaje || 'No se pudo guardar el edificio.');
       },
     });
+  }
+
+  private limpiarVistaPrevia(): void {
+    if (this.vistaPreviaLocal) URL.revokeObjectURL(this.vistaPreviaLocal);
+    this.vistaPreviaLocal = null;
+    this.vistaPrevia.set(null);
   }
 
   eliminar(edificio: Edificio): void {
