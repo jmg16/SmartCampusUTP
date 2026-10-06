@@ -517,6 +517,10 @@ async function ensureSalonesTable() {
       ALTER TABLE campus_rooms
       ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb
     `);
+    await bitacoraPool.query(`
+      ALTER TABLE campus_rooms
+      ADD COLUMN IF NOT EXISTS photo TEXT
+    `);
     const existentes = await bitacoraPool.query('SELECT COUNT(*)::int AS total FROM campus_rooms');
     if (existentes.rows[0].total > 0) return;
     await bitacoraPool.query(
@@ -801,7 +805,7 @@ const SALON_SELECT = `
   SELECT r.id, r.slug, r.name AS nombre, r.type AS tipo,
          COALESCE(b.name, r.building) AS edificio, r.building_id AS edificio_id,
          r.location AS ubicacion, r.capacity AS capacidad, r.description AS descripcion,
-         r.features AS caracteristicas, r.furniture AS mobiliario, r.photos AS fotos,
+         r.features AS caracteristicas, r.furniture AS mobiliario, r.photo AS foto, r.photos AS fotos,
          r.created_at, r.updated_at
   FROM campus_rooms r
   LEFT JOIN campus_buildings b ON b.id = r.building_id
@@ -866,17 +870,20 @@ function presentSalon(row) {
   const fotos = Array.isArray(row.fotos)
     ? row.fotos.map((url) => {
         if (typeof url !== 'string') return url;
-        const nombre = path.basename(url).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+        const nombre = path.basename(String(url).split('?')[0]).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
         return nombre ? `/api/salones/foto/${nombre}` : url;
       })
     : [];
-  return { ...row, fotos };
+  const foto = row.foto ? String(row.foto).split('?')[0] : null;
+  const stamp = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+  return { ...row, fotos, foto: foto ? `${foto}?t=${stamp}` : null };
 }
 
 function archivoDeFotoSalon(url) {
-  const nombre = path.basename(String(url || '')).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+  const limpio = decodeURIComponent(String(url || '').split('?')[0]);
+  const nombre = path.basename(limpio).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
   if (!nombre || !/^[a-zA-Z0-9_-]+$/.test(nombre)) return null;
-  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif']) {
     const archivo = path.join(UPLOADS_SALONES_DIR, nombre + ext);
     if (fs.existsSync(archivo)) return archivo;
   }
@@ -910,6 +917,7 @@ app.get('/api/salones/foto/:nombre', (req, res) => {
   if (req.query.descargar === '1') {
     return res.download(archivo, path.basename(archivo));
   }
+  res.set('Cache-Control', 'no-store');
   res.sendFile(archivo);
 });
 
@@ -1037,6 +1045,37 @@ app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => 
 
 const SALON_RETURNING = 'RETURNING id';
 
+app.post('/api/salones/:id/foto', requireBitacoraAuth, manejarFoto(uploadSalonFoto), async (req, res) => {
+  if (!ensureBitacoraDbConfig(res)) return;
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ ok: false, mensaje: 'Selecciona una imagen JPG, PNG, GIF o WebP.' });
+  }
+  const url = `/api/salones/foto/${path.basename(req.file.filename, path.extname(req.file.filename))}`;
+  try {
+    const previo = await bitacoraPool.query('SELECT photo FROM campus_rooms WHERE id = $1', [id]);
+    if (previo.rows.length === 0) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
+    }
+    await bitacoraPool.query(
+      'UPDATE campus_rooms SET photo = $1, updated_at = NOW() WHERE id = $2',
+      [url, id]
+    );
+    const anterior = archivoDeFotoSalon(previo.rows[0].photo);
+    if (anterior) fs.unlink(anterior, () => {});
+    res.status(201).json({ ok: true, dato: await salonPorId(id) });
+  } catch (err) {
+    fs.unlink(req.file.path, () => {});
+    console.error('Error en POST /api/salones/:id/foto:', err);
+    res.status(500).json({ ok: false, mensaje: 'Error al guardar la fotografía.' });
+  }
+});
+
 app.post('/api/salones/:id/fotos', requireBitacoraAuth, manejarFoto(uploadSalonFoto), async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const id = Number.parseInt(req.params.id, 10);
@@ -1108,10 +1147,15 @@ app.delete('/api/salones/:id', requireBitacoraAuth, async (req, res) => {
     return res.status(400).json({ ok: false, mensaje: 'ID inválido.' });
   }
   try {
-    const result = await bitacoraPool.query('DELETE FROM campus_rooms WHERE id = $1 RETURNING id', [id]);
+    const result = await bitacoraPool.query(
+      'DELETE FROM campus_rooms WHERE id = $1 RETURNING photo',
+      [id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Salón no encontrado.' });
     }
+    const archivo = archivoDeFotoSalon(result.rows[0].photo);
+    if (archivo) fs.unlink(archivo, () => {});
     res.json({ ok: true, mensaje: 'Salón eliminado correctamente.' });
   } catch (err) {
     console.error('Error en DELETE /api/salones/:id:', err);

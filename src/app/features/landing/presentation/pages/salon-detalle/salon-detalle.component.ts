@@ -30,6 +30,7 @@ export class SalonDetalleComponent implements OnInit {
         this.salon.set({
           ...salon,
           mobiliario: salon.mobiliario ?? [],
+          foto: salon.foto ?? null,
           fotos: salon.fotos ?? [],
         });
         this.cargando.set(false);

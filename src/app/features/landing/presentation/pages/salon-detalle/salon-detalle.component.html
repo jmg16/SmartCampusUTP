@@ -18,14 +18,18 @@
         </a>
 
         <div class="mt-5 overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm">
-          <div class="flex h-64 sm:h-80 flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700">
-            <svg class="h-20 w-20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01" />
-            </svg>
-            <span class="mt-4 rounded-full bg-amber-200/70 px-4 py-1.5 text-sm font-bold uppercase tracking-wider">
-              En construcción
-            </span>
-          </div>
+          @if (espacio.foto) {
+            <img [src]="espacio.foto" [alt]="'Portada de ' + espacio.nombre" class="h-64 w-full object-cover object-center sm:h-80" />
+          } @else {
+            <div class="flex h-64 sm:h-80 flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700">
+              <svg class="h-20 w-20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01" />
+              </svg>
+              <span class="mt-4 rounded-full bg-amber-200/70 px-4 py-1.5 text-sm font-bold uppercase tracking-wider">
+                En construcción
+              </span>
+            </div>
+          }
 
           <div class="p-5 sm:p-8">
             <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">

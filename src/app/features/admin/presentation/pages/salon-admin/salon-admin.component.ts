@@ -29,7 +29,9 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
   cargando = signal(true);
   guardandoMobiliario = signal(false);
   guardandoFoto = signal(false);
+  guardandoPortada = signal(false);
   mensaje = signal<string | null>(null);
+  error = signal<string | null>(null);
   vistaPrevia = signal<string | null>(null);
   nombreFotoPendiente = signal<string | null>(null);
   fotoReciente = signal<string | null>(null);
@@ -115,6 +117,40 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.guardarMobiliario(espacio.mobiliario.filter((_, posicion) => posicion !== indice));
   }
 
+  async elegirPortada(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    input.value = '';
+    const espacio = this.salon();
+    if (!espacio || !archivo || this.guardandoPortada()) return;
+    this.guardandoPortada.set(true);
+    this.error.set(null);
+    this.mensaje.set(null);
+    let lista: File;
+    try {
+      lista = await comprimirImagen(archivo);
+    } catch {
+      this.guardandoPortada.set(false);
+      this.error.set('Esa foto es demasiado pesada. Prueba con otra imagen.');
+      return;
+    }
+    this.salonesService.subirPortada(espacio.id, lista).subscribe({
+      next: (salon) => {
+        this.asignar(salon);
+        this.guardandoPortada.set(false);
+        this.mensaje.set('Portada actualizada.');
+      },
+      error: (err) => {
+        this.guardandoPortada.set(false);
+        this.error.set(
+          err?.status === 413
+            ? 'La foto sigue siendo demasiado pesada para el servidor.'
+            : err?.error?.mensaje || 'No se pudo guardar la fotografía.'
+        );
+      },
+    });
+  }
+
   async elegirFoto(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
@@ -126,7 +162,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     try {
       lista = await comprimirImagen(archivo);
     } catch {
-      this.mensaje.set('Esa foto es demasiado pesada. Prueba con otra imagen.');
+      this.error.set('Esa foto es demasiado pesada. Prueba con otra imagen.');
       return;
     }
     this.fotoPendiente = lista;
@@ -138,7 +174,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
       }
     };
     lector.onerror = () => {
-      this.mensaje.set('No se pudo generar la vista previa de la imagen.');
+      this.error.set('No se pudo generar la vista previa de la imagen.');
     };
     lector.readAsDataURL(lista);
   }
@@ -147,7 +183,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     const espacio = this.salon();
     const archivo = this.fotoPendiente;
     if (!espacio || !archivo || this.guardandoFoto()) {
-      this.mensaje.set('Toma o sube una imagen antes de guardar.');
+      this.error.set('Toma o sube una imagen antes de guardar.');
       return;
     }
     this.guardandoFoto.set(true);
@@ -159,11 +195,12 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
         this.limpiarVistaPrevia();
         this.guardandoFoto.set(false);
         this.mensaje.set('Fotografía guardada.');
+        this.error.set(null);
         this.mostrarFotoReciente(nuevaFoto, (salon.fotos?.length ?? 1) - 1);
       },
       error: (err) => {
         this.guardandoFoto.set(false);
-        this.mensaje.set(err?.error?.mensaje || 'No se pudo guardar la fotografía.');
+        this.error.set(err?.error?.mensaje || 'No se pudo guardar la fotografía.');
       },
     });
   }
@@ -176,7 +213,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
         if (this.fotoVista() === url) this.cerrarFoto();
         this.asignar(salon);
       },
-      error: (err) => this.mensaje.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
+      error: (err) => this.error.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
     });
   }
 
@@ -220,10 +257,11 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
         this.asignar(salon);
         this.guardandoMobiliario.set(false);
         this.mensaje.set(aviso);
+        this.error.set(null);
       },
       error: (err) => {
         this.guardandoMobiliario.set(false);
-        this.mensaje.set(err?.error?.mensaje || 'No se pudo guardar el mobiliario.');
+        this.error.set(err?.error?.mensaje || 'No se pudo guardar el mobiliario.');
       },
     });
   }
@@ -232,6 +270,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.salon.set({
       ...salon,
       mobiliario: salon.mobiliario ?? [],
+      foto: salon.foto ?? null,
       fotos: salon.fotos ?? [],
     });
   }

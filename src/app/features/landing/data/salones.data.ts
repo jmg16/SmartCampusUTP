@@ -14,6 +14,7 @@ export const SALONES: Salon[] = [
       'Espacio para clases prácticas de programación, redes y desarrollo de software.',
     caracteristicas: ['Computadoras', 'Proyector', 'Aire acondicionado', 'Acceso a internet'],
     mobiliario: [],
+    foto: null,
     fotos: [],
   },
   {
@@ -29,6 +30,7 @@ export const SALONES: Salon[] = [
       'Salón de clases para actividades académicas, presentaciones y trabajo colaborativo.',
     caracteristicas: ['Proyector', 'Pizarra', 'Aire acondicionado', 'Tomas eléctricas'],
     mobiliario: [],
+    foto: null,
     fotos: [],
   },
   {
@@ -44,6 +46,7 @@ export const SALONES: Salon[] = [
       'Laboratorio equipado para prácticas de circuitos, electrónica y mediciones eléctricas.',
     caracteristicas: ['Mesas de trabajo', 'Equipos de medición', 'Proyector', 'Área de seguridad'],
     mobiliario: [],
+    foto: null,
     fotos: [],
   },
 ];

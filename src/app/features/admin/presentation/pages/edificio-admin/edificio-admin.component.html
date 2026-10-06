@@ -172,8 +172,12 @@
                 @for (salon of salones(); track salon.id) {
                   <article
                     [routerLink]="['/admin/salones', salon.slug]"
-                    class="block cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-utp-blue/40"
+                    class="block cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:border-utp-blue/40"
                   >
+                    @if (salon.foto) {
+                      <img [src]="salon.foto" [alt]="'Portada de ' + salon.nombre" class="h-36 w-full object-cover object-center" />
+                    }
+                    <div class="p-4">
                     <span class="text-xs font-semibold uppercase tracking-wide text-utp-blue">{{ salon.tipo }}</span>
                     <h3 class="mt-1 font-bold text-gray-900">{{ salon.nombre }}</h3>
                     <p class="mt-2 text-xs text-gray-500">
@@ -198,6 +202,7 @@
                         </svg>
                         Eliminar
                       </button>
+                    </div>
                     </div>
                   </article>
                 }

@@ -45,6 +45,16 @@ export class SalonesService {
       .pipe(map((response) => response.dato));
   }
 
+  subirPortada(id: number, archivo: File): Observable<Salon> {
+    const form = new FormData();
+    form.append('foto', archivo);
+    return this.http
+      .post<{ ok: boolean; dato: Salon }>(`/api/salones/${id}/foto`, form, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((response) => response.dato));
+  }
+
   subirFoto(id: number, archivo: File): Observable<Salon> {
     const form = new FormData();
     form.append('foto', archivo);
