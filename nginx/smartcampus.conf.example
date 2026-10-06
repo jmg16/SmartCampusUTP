@@ -13,6 +13,9 @@ server {
     listen 80;
     server_name smartcampusch.utp.ac.pa;
 
+    # Las fotos del celular superan el límite de 1 MB de Nginx.
+    client_max_body_size 30m;
+
     # Frontend Angular: archivos estáticos del build (NO proxy todo a Node)
     root /home/jmartinez/smartcampus/smartcampus-web/dist/smartcampus-web/browser;
     index index.html;

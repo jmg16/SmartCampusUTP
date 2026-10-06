@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
+import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
 import { Edificio } from '../../../../../shared/models/edificio.model';
 import { Salon, SalonPayload } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
@@ -170,7 +171,7 @@ export class EdificioAdminComponent implements OnInit {
     });
   }
 
-  elegirFoto(event: Event): void {
+  async elegirFoto(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
     input.value = '';
@@ -179,7 +180,15 @@ export class EdificioAdminComponent implements OnInit {
     this.guardandoFoto.set(true);
     this.error.set(null);
     this.success.set(null);
-    this.edificiosService.subirFoto(edificio.id, archivo).subscribe({
+    let lista: File;
+    try {
+      lista = await comprimirImagen(archivo);
+    } catch {
+      this.guardandoFoto.set(false);
+      this.error.set('Esa foto es demasiado pesada. Prueba con otra imagen.');
+      return;
+    }
+    this.edificiosService.subirFoto(edificio.id, lista).subscribe({
       next: (actualizado) => {
         this.edificio.set({ ...actualizado });
         this.guardandoFoto.set(false);
@@ -187,7 +196,11 @@ export class EdificioAdminComponent implements OnInit {
       },
       error: (err) => {
         this.guardandoFoto.set(false);
-        this.error.set(err?.error?.mensaje || 'No se pudo guardar la fotografía.');
+        this.error.set(
+          err?.status === 413
+            ? 'La foto sigue siendo demasiado pesada para el servidor.'
+            : err?.error?.mensaje || 'No se pudo guardar la fotografía.'
+        );
       },
     });
   }

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
+import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
 import { Mobiliario, Salon } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
@@ -114,25 +115,32 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.guardarMobiliario(espacio.mobiliario.filter((_, posicion) => posicion !== indice));
   }
 
-  elegirFoto(event: Event): void {
+  async elegirFoto(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
     input.value = '';
     if (!archivo) return;
     this.limpiarVistaPrevia();
-    this.fotoPendiente = archivo;
-    this.nombreFotoPendiente.set(archivo.name);
     this.mensaje.set(null);
+    let lista: File;
+    try {
+      lista = await comprimirImagen(archivo);
+    } catch {
+      this.mensaje.set('Esa foto es demasiado pesada. Prueba con otra imagen.');
+      return;
+    }
+    this.fotoPendiente = lista;
+    this.nombreFotoPendiente.set(lista.name);
     const lector = new FileReader();
     lector.onload = () => {
-      if (this.fotoPendiente === archivo) {
+      if (this.fotoPendiente === lista) {
         this.vistaPrevia.set(String(lector.result));
       }
     };
     lector.onerror = () => {
       this.mensaje.set('No se pudo generar la vista previa de la imagen.');
     };
-    lector.readAsDataURL(archivo);
+    lector.readAsDataURL(lista);
   }
 
   guardarFoto(): void {

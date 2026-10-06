@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
+import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
 import { Edificio } from '../../../../../shared/models/edificio.model';
 import '@google/model-viewer';
 
@@ -85,14 +86,19 @@ export class EdificiosDashboardComponent implements OnInit {
     if (input) input.value = '';
   }
 
-  elegirImagen(event: Event): void {
+  async elegirImagen(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0] ?? null;
-    this.imagenPendiente = archivo;
+    this.imagenPendiente = null;
     this.limpiarVistaPrevia();
-    if (archivo) {
-      this.vistaPreviaLocal = URL.createObjectURL(archivo);
+    if (!archivo) return;
+    try {
+      const lista = await comprimirImagen(archivo);
+      this.imagenPendiente = lista;
+      this.vistaPreviaLocal = URL.createObjectURL(lista);
       this.vistaPrevia.set(this.vistaPreviaLocal);
+    } catch {
+      this.error.set('Esa foto es demasiado pesada. Prueba con otra imagen.');
     }
   }
 
