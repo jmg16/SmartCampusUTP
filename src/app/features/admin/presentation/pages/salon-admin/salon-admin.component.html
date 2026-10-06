@@ -54,16 +54,15 @@
               </label>
             </div>
           </div>
-          <div class="p-5 sm:p-6">
+          <div class="px-5 py-6 text-center sm:px-6">
             <p class="text-sm font-medium text-utp-blue">{{ espacio.edificio }}</p>
             <h2 class="mt-1 text-2xl font-bold text-gray-900">{{ espacio.nombre }}</h2>
-            <p class="mt-2 text-gray-600">{{ espacio.descripcion }}</p>
+            <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">{{ espacio.descripcion }}</p>
           </div>
         </section>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <h2 class="text-lg font-bold text-gray-900">Inventario mobiliario del lugar</h2>
-          <p class="mt-1 text-sm text-gray-600">Pulsa un objeto para ver el modelo en grande.</p>
+          <h2 class="text-center text-lg font-bold text-gray-900">Inventario mobiliario</h2>
           @if (espacio.mobiliario.length) {
             <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               @for (item of espacio.mobiliario; track item.serie; let i = $index) {
@@ -86,13 +85,12 @@
               }
             </ul>
           } @else {
-            <p class="mt-4 text-sm text-gray-500">Este salón todavía no tiene mobiliario.</p>
+            <p class="mt-6 text-center text-sm text-gray-500">Sin mobiliario</p>
           }
 
-          <h3 class="mt-8 text-base font-bold text-gray-900">Agregar de la librería</h3>
-          <p class="mt-1 text-sm text-gray-600">Solo aparecen los modelos que aún no están en este salón.</p>
+          <h3 class="mt-8 text-center text-base font-bold text-gray-900">Librería</h3>
           @if (modelos().length === 0) {
-            <p class="mt-4 text-sm text-gray-500">Todavía no hay modelos en la librería 3D.</p>
+            <p class="mt-4 text-center text-sm text-gray-500">La librería está vacía.</p>
           } @else {
             <ul class="mt-4 grid gap-3 sm:grid-cols-2">
               @for (modelo of modelos(); track modelo.id) {
@@ -117,10 +115,7 @@
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="text-lg font-bold text-gray-900">Fotografías</h2>
-              <p class="mt-1 text-sm text-gray-600">Toma una foto con la cámara o sube una imagen del dispositivo.</p>
-            </div>
+            <h2 class="text-lg font-bold text-gray-900">Fotografías</h2>
             <div class="flex flex-col gap-2 sm:flex-row">
               <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-utp-blue px-5 py-3 font-semibold text-white hover:bg-utp-blue/90">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -153,15 +148,12 @@
                 <span class="max-w-[65%] truncate text-xs text-gray-600">{{ nombreFotoPendiente() }}</span>
               </div>
               <img [src]="previa" alt="Vista previa de la fotografía" class="max-h-80 w-full bg-gray-100 object-contain" />
-              <figcaption class="px-4 py-3 text-sm text-gray-700">La imagen aún no está guardada. Pulsa <strong>Guardar</strong> para agregarla al inventario.</figcaption>
+              <figcaption class="px-4 py-3 text-center text-sm text-gray-600">Pulsa Guardar para agregarla.</figcaption>
             </figure>
           }
           <div id="inventario-fotografico" class="mt-8 scroll-mt-24 border-t border-gray-100 pt-6">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 class="font-bold text-gray-900">Inventario fotográfico del salón</h3>
-                <p class="mt-1 text-sm text-gray-600">Pulsa una imagen para verla en grande y descargarla.</p>
-              </div>
+              <h3 class="font-bold text-gray-900">Inventario</h3>
               <span class="rounded-full bg-utp-blue/10 px-3 py-1 text-sm font-semibold text-utp-blue">
                 {{ espacio.fotos.length }} {{ espacio.fotos.length === 1 ? 'fotografía' : 'fotografías' }}
               </span>
@@ -187,7 +179,7 @@
             </div>
           } @else {
             <div class="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-              Aún no hay fotografías guardadas en este salón.
+              Sin fotografías
             </div>
           }
           </div>
