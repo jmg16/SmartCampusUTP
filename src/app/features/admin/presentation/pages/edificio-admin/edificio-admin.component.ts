@@ -181,7 +181,7 @@ export class EdificioAdminComponent implements OnInit {
     this.success.set(null);
     this.edificiosService.subirFoto(edificio.id, archivo).subscribe({
       next: (actualizado) => {
-        this.edificio.set(actualizado);
+        this.edificio.set({ ...actualizado });
         this.guardandoFoto.set(false);
         this.success.set('Portada actualizada.');
       },

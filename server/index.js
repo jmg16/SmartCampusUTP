@@ -104,12 +104,37 @@ const storageSalones = multer.diskStorage({
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext.startsWith('.') ? ext : `.${ext}`}`);
   },
 });
+function esImagenPermitida(file) {
+  const mime = String(file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  return (
+    /image\/(jpeg|pjpeg|jpg|png|x-png|gif|webp|heic|heif)$/.test(mime) ||
+    /\.(jpe?g|png|gif|webp|heic|heif)$/.test(ext)
+  );
+}
+
+function manejarFoto(upload) {
+  return (req, res, next) => {
+    upload.single('foto')(req, res, (err) => {
+      if (!err) return next();
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          ok: false,
+          mensaje: 'La imagen pesa demasiado. Usa una de hasta 25 MB.',
+        });
+      }
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'No se pudo leer la imagen. Prueba con JPG o PNG.',
+      });
+    });
+  };
+}
+
 const uploadSalonFoto = multer({
   storage: storageSalones,
   limits: { fileSize: FOTO_MAX_BYTES },
-  fileFilter: (_req, file, cb) => {
-    cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
-  },
+  fileFilter: (_req, file, cb) => cb(null, esImagenPermitida(file)),
 });
 
 const uploadEdificioFoto = multer({
@@ -121,9 +146,7 @@ const uploadEdificioFoto = multer({
     },
   }),
   limits: { fileSize: FOTO_MAX_BYTES },
-  fileFilter: (_req, file, cb) => {
-    cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
-  },
+  fileFilter: (_req, file, cb) => cb(null, esImagenPermitida(file)),
 });
 
 const uploadEventos = multer({
@@ -559,13 +582,21 @@ const EDIFICIO_SELECT = `
 `;
 
 function archivoDeFotoEdificio(url) {
-  const nombre = path.basename(String(url || '')).replace(/\.(jpe?g|png|gif|webp)$/i, '');
+  const limpio = decodeURIComponent(String(url || '').split('?')[0]);
+  const nombre = path.basename(limpio).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
   if (!nombre || !/^[a-zA-Z0-9_-]+$/.test(nombre)) return null;
-  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif']) {
     const archivo = path.join(UPLOADS_EDIFICIOS_DIR, nombre + ext);
     if (fs.existsSync(archivo)) return archivo;
   }
   return null;
+}
+
+function presentEdificio(row) {
+  if (!row) return null;
+  const foto = row.foto ? String(row.foto).split('?')[0] : null;
+  const stamp = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+  return { ...row, foto: foto ? `${foto}?t=${stamp}` : null };
 }
 
 function parseEdificioPayload(body) {
@@ -583,12 +614,13 @@ function parseEdificioPayload(body) {
 
 async function edificioPorId(id) {
   const result = await bitacoraPool.query(`${EDIFICIO_SELECT} WHERE b.id = $1`, [id]);
-  return result.rows[0] || null;
+  return presentEdificio(result.rows[0]);
 }
 
 app.get('/api/edificios/foto/:nombre', (req, res) => {
   const archivo = archivoDeFotoEdificio(req.params.nombre);
   if (!archivo) return res.status(404).end();
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(archivo);
 });
 
@@ -596,7 +628,7 @@ app.get('/api/edificios', async (_req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   try {
     const result = await bitacoraPool.query(`${EDIFICIO_SELECT} ORDER BY b.name ASC`);
-    res.json({ ok: true, datos: result.rows });
+    res.json({ ok: true, datos: result.rows.map(presentEdificio) });
   } catch (err) {
     console.error('Error en GET /api/edificios:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al obtener los edificios.' });
@@ -610,7 +642,7 @@ app.get('/api/edificios/:slug', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, mensaje: 'Edificio no encontrado.' });
     }
-    res.json({ ok: true, dato: result.rows[0] });
+    res.json({ ok: true, dato: presentEdificio(result.rows[0]) });
   } catch (err) {
     console.error('Error en GET /api/edificios/:slug:', err);
     res.status(500).json({ ok: false, mensaje: 'Error al obtener el edificio.' });
@@ -676,7 +708,7 @@ app.put('/api/edificios/:id', requireBitacoraAuth, async (req, res) => {
   }
 });
 
-app.post('/api/edificios/:id/foto', requireBitacoraAuth, uploadEdificioFoto.single('foto'), async (req, res) => {
+app.post('/api/edificios/:id/foto', requireBitacoraAuth, manejarFoto(uploadEdificioFoto), async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) {
@@ -1005,7 +1037,7 @@ app.put('/api/salones/:id/mobiliario', requireBitacoraAuth, async (req, res) => 
 
 const SALON_RETURNING = 'RETURNING id';
 
-app.post('/api/salones/:id/fotos', requireBitacoraAuth, uploadSalonFoto.single('foto'), async (req, res) => {
+app.post('/api/salones/:id/fotos', requireBitacoraAuth, manejarFoto(uploadSalonFoto), async (req, res) => {
   if (!ensureBitacoraDbConfig(res)) return;
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id <= 0) {

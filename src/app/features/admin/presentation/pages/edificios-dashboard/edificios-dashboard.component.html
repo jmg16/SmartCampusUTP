@@ -102,7 +102,7 @@
               class="block cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:border-utp-blue/40"
             >
               @if (edificio.foto) {
-                <img [src]="edificio.foto" [alt]="edificio.nombre" class="h-36 w-full object-cover" />
+                <img [src]="edificio.foto" [alt]="edificio.nombre" class="h-36 w-full object-cover object-center" />
               } @else if (edificio.bim_url) {
                 <div class="flex h-36 w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-utp-blue via-sky-500 to-indigo-600 text-white">
                   <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
