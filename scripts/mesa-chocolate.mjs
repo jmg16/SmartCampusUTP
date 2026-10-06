@@ -47,48 +47,49 @@ const madera = mesh();
 const hierro = mesh();
 
 const ancho = 1.2;
-const fondo = 0.58;
+const fondo = 0.6;
 const alto = 0.75;
-const tapa = 0.045;
-const cajonAlto = 0.12;
-const tubo = 0.028;
+const tapa = 0.03;
+const cajonAlto = 0.13;
+const tubo = 0.018;
 
 addBox(madera, 0, alto - tapa / 2, 0, ancho, tapa, fondo);
-addBox(
-  madera,
-  0,
-  alto - tapa - cajonAlto / 2,
-  -0.01,
-  ancho - 0.06,
-  cajonAlto,
-  fondo - 0.08
-);
 
-const frenteY = alto - tapa - cajonAlto / 2;
-const frenteZ = fondo / 2 - 0.045;
+const cajonAncho = ancho - 0.08;
+const cajonGrosor = 0.02;
+const frenteZ = fondo / 2 - cajonGrosor / 2 - 0.006;
+addBox(madera, 0, alto - tapa - cajonAlto / 2, frenteZ, cajonAncho, cajonAlto, cajonGrosor);
+
+const asaY = alto - tapa - cajonAlto * 0.42;
+const asaZ = frenteZ + cajonGrosor / 2 + 0.004;
 for (const lado of [-1, 1]) {
-  addBox(hierro, lado * 0.16, frenteY, frenteZ, 0.11, 0.018, 0.012);
+  addBox(hierro, lado * 0.2, asaY, asaZ, 0.1, 0.012, 0.008);
 }
 
-const pisoCajon = alto - tapa - cajonAlto;
-const margenX = ancho / 2 - 0.09;
-const margenZ = fondo / 2 - 0.08;
-const postes = [
-  [-margenX, -margenZ],
-  [margenX, -margenZ],
-  [-margenX, margenZ],
-  [margenX, margenZ],
-];
-for (const [x, z] of postes) {
-  addBox(hierro, x, pisoCajon / 2, z, tubo, pisoCajon, tubo);
+const xL = -ancho / 2 + 0.05;
+const xR = ancho / 2 - 0.05;
+const zF = fondo / 2 - 0.045;
+const zB = -fondo / 2 + 0.045;
+const bajoTapa = alto - tapa;
+const bajoCajon = alto - tapa - cajonAlto;
+
+for (const x of [xL, xR]) {
+  for (const z of [zF, zB]) {
+    addBox(hierro, x, bajoTapa / 2, z, tubo, bajoTapa, tubo);
+  }
 }
+
+const luzFrente = xR - xL;
+for (const fraccion of [0.25, 0.5, 0.75]) {
+  const x = xL + luzFrente * fraccion;
+  addBox(hierro, x, bajoCajon / 2, zF, tubo, bajoCajon, tubo);
+}
+
 const railY = tubo / 2;
-const luzX = margenX * 2 - tubo;
-const luzZ = margenZ * 2 - tubo;
-addBox(hierro, 0, railY, -margenZ, luzX, tubo, tubo);
-addBox(hierro, 0, railY, margenZ, luzX, tubo, tubo);
-addBox(hierro, -margenX, railY, 0, tubo, tubo, luzZ);
-addBox(hierro, margenX, railY, 0, tubo, tubo, luzZ);
+addBox(hierro, 0, railY, zF, luzFrente, tubo, tubo);
+addBox(hierro, 0, railY, zB, luzFrente, tubo, tubo);
+addBox(hierro, xL, railY, (zF + zB) / 2, tubo, tubo, zF - zB);
+addBox(hierro, xR, railY, (zF + zB) / 2, tubo, tubo, zF - zB);
 
 function pack(parts) {
   const positions = new Float32Array(parts.positions);

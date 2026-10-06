@@ -10,7 +10,7 @@ const MESA_CHOCOLATE: Modelo3D = {
   reference_code: 'MESA-CHOCOLATE',
   description: 'Tapa y cajón en madera chocolate. Patas, marco y manijas en hierro negro.',
   file_url: 'assets/mesa-chocolate.glb',
-  file_size: 9448,
+  file_size: 11392,
   author: 'Smart Campus',
   created_at: '2026-10-06T20:00:00.000Z',
 };
