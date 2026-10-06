@@ -160,20 +160,18 @@
             </div>
           @if (espacio.fotos.length) {
             <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              @for (foto of espacio.fotos; track foto) {
+              @for (foto of espacio.fotos; track foto.url) {
                 <figure
                   [attr.id]="'foto-salon-' + $index"
-                  [class.ring-4]="fotoReciente() === foto"
-                  [class.ring-utp-blue]="fotoReciente() === foto"
-                  class="group relative scroll-mt-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm transition-shadow"
+                  [class.ring-4]="fotoReciente() === foto.url"
+                  [class.ring-utp-blue]="fotoReciente() === foto.url"
+                  class="group relative scroll-mt-24 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow"
                 >
                   <button type="button" (click)="abrirFoto(foto)" class="block w-full" aria-label="Ver fotografía en grande">
-                    <img [src]="foto" alt="Fotografía del salón" class="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                    <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10 text-left text-sm font-semibold text-white">
-                      Ver y descargar
-                    </span>
+                    <img [src]="foto.url" alt="Fotografía del salón" class="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   </button>
-                  <button type="button" (click)="eliminarFoto(foto); $event.stopPropagation()" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600" aria-label="Eliminar fotografía">×</button>
+                  <button type="button" (click)="eliminarFoto(foto.url); $event.stopPropagation()" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600" aria-label="Eliminar fotografía">×</button>
+                  <figcaption class="px-3 py-2 text-xs leading-5 text-gray-600">{{ foto.resumen }}</figcaption>
                 </figure>
               }
             </div>
@@ -246,10 +244,10 @@
         <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-6">
           <div>
             <h2 class="font-bold text-gray-900">Fotografía del salón</h2>
-            <p class="text-xs text-gray-500">{{ salon()?.nombre }}</p>
+            <p class="text-xs text-gray-500">{{ foto.resumen || salon()?.nombre }}</p>
           </div>
           <div class="flex items-center gap-2">
-            <a [href]="urlDescargaFoto(foto)" class="inline-flex items-center gap-2 rounded-xl bg-utp-blue px-4 py-2 text-sm font-semibold text-white hover:bg-utp-blue-dark">
+            <a [href]="urlDescargaFoto(foto.url)" class="inline-flex items-center gap-2 rounded-xl bg-utp-blue px-4 py-2 text-sm font-semibold text-white hover:bg-utp-blue-dark">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M4.5 19.5h15" />
               </svg>
@@ -263,7 +261,7 @@
           </div>
         </div>
         <div class="min-h-0 flex-1 overflow-auto bg-slate-950 p-3 sm:p-5">
-          <img [src]="foto" alt="Fotografía ampliada del salón" class="mx-auto max-h-[75vh] w-auto max-w-full rounded-lg object-contain" />
+          <img [src]="foto.url" alt="Fotografía ampliada del salón" class="mx-auto max-h-[75vh] w-auto max-w-full rounded-lg object-contain" />
         </div>
       </div>
     </div>

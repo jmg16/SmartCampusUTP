@@ -1,3 +1,8 @@
+export interface FotoSalon {
+  url: string;
+  resumen: string;
+}
+
 export interface Mobiliario {
   nombre: string;
   cantidad: number;
@@ -17,7 +22,7 @@ export interface Salon {
   caracteristicas: string[];
   mobiliario: Mobiliario[];
   foto: string | null;
-  fotos: string[];
+  fotos: FotoSalon[];
   created_at?: string;
   updated_at?: string;
 }

@@ -885,14 +885,66 @@ function parseSalonPayload(body) {
   return { data, valid: Boolean(valid) };
 }
 
+function medidasImagen(archivo) {
+  const fd = fs.openSync(archivo, 'r');
+  const buf = Buffer.alloc(256 * 1024);
+  const leido = fs.readSync(fd, buf, 0, buf.length, 0);
+  fs.closeSync(fd);
+  const formato = path.extname(archivo).replace('.', '').toUpperCase() || 'IMG';
+  if (leido >= 24 && buf[0] === 0x89 && buf[1] === 0x50) {
+    return { ancho: buf.readUInt32BE(16), alto: buf.readUInt32BE(20), formato: 'PNG' };
+  }
+  if (leido > 4 && buf[0] === 0xff && buf[1] === 0xd8) {
+    let offset = 2;
+    while (offset + 9 < leido) {
+      if (buf[offset] !== 0xff) break;
+      const marca = buf[offset + 1];
+      if (marca === 0xd8 || marca === 0xd9) {
+        offset += 2;
+        continue;
+      }
+      const largo = buf.readUInt16BE(offset + 2);
+      if (marca >= 0xc0 && marca <= 0xc3 && offset + 8 < leido) {
+        return { alto: buf.readUInt16BE(offset + 5), ancho: buf.readUInt16BE(offset + 7), formato: 'JPG' };
+      }
+      if (largo < 2) break;
+      offset += 2 + largo;
+    }
+  }
+  return { ancho: null, alto: null, formato };
+}
+
+function fichaDeFotoSalon(url) {
+  const nombre = path.basename(String(url || '').split('?')[0]).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
+  const publica = nombre ? `/api/salones/foto/${nombre}` : String(url || '');
+  const archivo = archivoDeFotoSalon(nombre);
+  if (!archivo) return { url: publica, resumen: '' };
+  let ancho = null;
+  let alto = null;
+  let formato = path.extname(archivo).replace('.', '').toUpperCase();
+  try {
+    ({ ancho, alto, formato } = medidasImagen(archivo));
+  } catch {
+    /* la foto se muestra aunque no se puedan leer sus medidas */
+  }
+  const stat = fs.statSync(archivo);
+  const marca = path.basename(archivo).match(/^(\d{13})-/);
+  const fecha = new Date(marca ? Number(marca[1]) : stat.mtime);
+  const cuando = Number.isNaN(fecha.getTime())
+    ? ''
+    : fecha.toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' });
+  const peso =
+    stat.size < 1024 * 1024
+      ? `${Math.max(1, Math.round(stat.size / 1024))} KB`
+      : `${(stat.size / (1024 * 1024)).toFixed(1)} MB`;
+  const partes = [cuando, ancho && alto ? `${ancho} × ${alto}` : '', formato, peso].filter(Boolean);
+  return { url: publica, resumen: partes.join(' · ') };
+}
+
 function presentSalon(row) {
   if (!row || typeof row !== 'object') return row;
   const fotos = Array.isArray(row.fotos)
-    ? row.fotos.map((url) => {
-        if (typeof url !== 'string') return url;
-        const nombre = path.basename(String(url).split('?')[0]).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
-        return nombre ? `/api/salones/foto/${nombre}` : url;
-      })
+    ? row.fotos.filter((url) => typeof url === 'string').map((url) => fichaDeFotoSalon(url))
     : [];
   const foto = row.foto ? String(row.foto).split('?')[0] : null;
   const stamp = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();

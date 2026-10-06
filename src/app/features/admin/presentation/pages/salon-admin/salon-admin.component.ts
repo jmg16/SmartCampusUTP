@@ -6,7 +6,7 @@ import { SalonesService } from '../../../../../core/services/salones.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
 import { ocultarAvisos } from '../../../../../core/utils/ocultar-avisos';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
-import { Mobiliario, Salon } from '../../../../../shared/models/salon.model';
+import { Mobiliario, Salon, FotoSalon } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
 
 @Component({
@@ -26,7 +26,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
   salon = signal<Salon | null>(null);
   modelos = signal<Modelo3D[]>([]);
   modeloVista = signal<Modelo3D | null>(null);
-  fotoVista = signal<string | null>(null);
+  fotoVista = signal<FotoSalon | null>(null);
   cargando = signal(true);
   guardandoMobiliario = signal(false);
   guardandoFoto = signal(false);
@@ -86,8 +86,8 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.modeloVista.set(null);
   }
 
-  abrirFoto(url: string): void {
-    this.fotoVista.set(url);
+  abrirFoto(foto: FotoSalon): void {
+    this.fotoVista.set(foto);
   }
 
   cerrarFoto(): void {
@@ -193,12 +193,13 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.salonesService.subirFoto(espacio.id, archivo).subscribe({
       next: (salon) => {
         this.asignar(salon);
-        const nuevaFoto = salon.fotos?.at(-1) ?? null;
+        const fotos = this.salon()?.fotos ?? [];
+        const nuevaFoto = fotos.at(-1) ?? null;
         this.limpiarVistaPrevia();
         this.guardandoFoto.set(false);
         this.mensaje.set('Fotografía guardada.');
         this.error.set(null);
-        this.mostrarFotoReciente(nuevaFoto, (salon.fotos?.length ?? 1) - 1);
+        this.mostrarFotoReciente(nuevaFoto?.url ?? null, fotos.length - 1);
       },
       error: (err) => {
         this.guardandoFoto.set(false);
@@ -212,7 +213,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     if (!espacio) return;
     this.salonesService.eliminarFoto(espacio.id, url).subscribe({
       next: (salon) => {
-        if (this.fotoVista() === url) this.cerrarFoto();
+        if (this.fotoVista()?.url === url) this.cerrarFoto();
         this.asignar(salon);
       },
       error: (err) => this.error.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
