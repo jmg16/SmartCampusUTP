@@ -50,7 +50,9 @@ export class AdminLoginComponent implements OnInit {
       .subscribe({
         next: () => {
           this.cargando.set(false);
-          this.router.navigateByUrl('/admin/bitacora');
+          const nombre = String(this.usuario?.value ?? '').trim();
+          sessionStorage.setItem('smartcampus.bienvenida', nombre);
+          this.router.navigate(['/admin/bitacora'], { state: { bienvenida: nombre } });
         },
         error: (err) => {
           this.cargando.set(false);

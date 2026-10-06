@@ -1,4 +1,19 @@
 <section class="min-h-screen bg-slate-50">
+  @if (bienvenida(); as nombre) {
+    <div class="pointer-events-none fixed inset-x-0 top-5 z-[70] flex justify-center px-4" role="status">
+      <div class="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border border-green-200 bg-white px-4 py-3 shadow-xl">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-utp-purple text-white">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900">Bienvenido, {{ nombre }}</p>
+          <p class="text-sm text-green-800">Sesión iniciada con éxito.</p>
+        </div>
+      </div>
+    </div>
+  }
   <header
     class="border-b bg-gradient-to-r from-utp-blue via-utp-accent to-utp-blue-dark text-white shadow-sm"
   >

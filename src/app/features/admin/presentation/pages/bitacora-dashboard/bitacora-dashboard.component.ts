@@ -21,6 +21,7 @@ export class BitacoraDashboardComponent implements OnInit {
   cargandoForm = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
+  bienvenida = signal<string | null>(null);
   logs = signal<ProjectLog[]>([]);
 
   readonly estados: BitacoraStatus[] = ['En progreso', 'Completado', 'Bloqueado'];
@@ -46,6 +47,23 @@ export class BitacoraDashboardComponent implements OnInit {
   previewBlobUrl = signal<string | null>(null);
 
   ngOnInit(): void {
+    const desdeEstado = (history.state as { bienvenida?: unknown } | null)?.bienvenida;
+    const desdeSesion = sessionStorage.getItem('smartcampus.bienvenida');
+    const nombre =
+      typeof desdeEstado === 'string' && desdeEstado.trim()
+        ? desdeEstado.trim()
+        : (desdeSesion ?? '').trim();
+    if (nombre) {
+      sessionStorage.removeItem('smartcampus.bienvenida');
+      this.bienvenida.set(nombre);
+      setTimeout(() => {
+        this.bienvenida.set(null);
+        const estado = history.state;
+        if (estado && typeof estado === 'object') {
+          history.replaceState({ ...estado, bienvenida: null }, '');
+        }
+      }, 4000);
+    }
     this.cargar();
   }
 
