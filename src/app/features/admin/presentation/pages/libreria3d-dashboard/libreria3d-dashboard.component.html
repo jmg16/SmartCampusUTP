@@ -146,20 +146,22 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           @for (modelo of datos(); track modelo.id) {
             <div class="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              <div class="h-44 bg-gradient-to-b from-gray-800 to-gray-900">
-                <model-viewer
-                  [attr.src]="modelo.file_url"
-                  auto-rotate
-                  camera-controls
-                  shadow-intensity="1"
-                  environment-image="neutral"
-                  class="w-full h-full"
-                  style="--poster-color: transparent;"
-                ></model-viewer>
-              </div>
+              <button type="button" (click)="abrirVista(modelo)" class="block w-full text-left" [attr.aria-label]="'Ver ' + modelo.name">
+                <div class="h-44 bg-gradient-to-b from-gray-800 to-gray-900 pointer-events-none">
+                  <model-viewer
+                    [attr.src]="modelo.file_url"
+                    auto-rotate
+                    shadow-intensity="1"
+                    environment-image="neutral"
+                    interaction-prompt="none"
+                    class="w-full h-full"
+                    style="--poster-color: transparent;"
+                  ></model-viewer>
+                </div>
+              </button>
               <div class="p-3">
                 <div class="flex items-start justify-between gap-2 mb-1">
-                  <h3 class="text-sm font-bold text-gray-900 leading-snug">{{ modelo.name }}</h3>
+                  <button type="button" (click)="abrirVista(modelo)" class="text-left text-sm font-bold text-gray-900 leading-snug hover:text-utp-blue">{{ modelo.name }}</button>
                   <span class="shrink-0 inline-flex items-center rounded-full bg-utp-blue/10 text-utp-blue px-2 py-0.5 text-[10px] font-semibold">
                     {{ modelo.category }}
                   </span>
@@ -186,6 +188,72 @@
       }
     </div>
   </div>
+
+  @if (modeloVista(); as m) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" (click)="cerrarVista()">
+      <div class="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <h2 class="text-xl font-bold text-gray-900">{{ m.name }}</h2>
+            <span class="inline-flex items-center rounded-full bg-utp-blue/10 px-3 py-1 text-xs font-semibold text-utp-blue">{{ m.category }}</span>
+          </div>
+          <button type="button" (click)="cerrarVista()" class="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Cerrar">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="h-[52vh] min-h-[280px] bg-gradient-to-b from-gray-800 to-gray-900">
+          <model-viewer
+            [attr.src]="m.file_url"
+            auto-rotate
+            camera-controls
+            shadow-intensity="1"
+            environment-image="neutral"
+            class="h-full w-full"
+            style="--poster-color: transparent;"
+          ></model-viewer>
+        </div>
+
+        <div class="overflow-y-auto px-6 py-5">
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Especificaciones</h3>
+          <dl class="mt-3 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <dt class="text-xs text-gray-500">Nombre</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ m.name }}</dd>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <dt class="text-xs text-gray-500">Categoría</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ m.category }}</dd>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <dt class="text-xs text-gray-500">Código de referencia</dt>
+              <dd class="font-mono text-sm font-medium text-utp-blue">{{ m.reference_code || 'Sin código' }}</dd>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <dt class="text-xs text-gray-500">Autor</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ m.author }}</dd>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <dt class="text-xs text-gray-500">Tamaño del archivo</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ formatSize(m.file_size) || 'No indicado' }}</dd>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <dt class="text-xs text-gray-500">Fecha de registro</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ m.created_at | date:'d MMM y, HH:mm' }}</dd>
+            </div>
+            @if (m.description) {
+              <div class="rounded-lg bg-gray-50 px-3 py-2 sm:col-span-2">
+                <dt class="text-xs text-gray-500">Descripción</dt>
+                <dd class="text-sm text-gray-800">{{ m.description }}</dd>
+              </div>
+            }
+          </dl>
+        </div>
+      </div>
+    </div>
+  }
 
   @if (mostrarConfirmacionLogout()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

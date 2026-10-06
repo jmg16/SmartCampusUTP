@@ -25,6 +25,7 @@ export class Libreria3dDashboardComponent implements OnInit {
   error = signal<string | null>(null);
   success = signal<string | null>(null);
   datos = signal<Modelo3D[]>([]);
+  modeloVista = signal<Modelo3D | null>(null);
   mostrarConfirmacionLogout = signal(false);
 
   archivoGlb = signal<File | null>(null);
@@ -120,6 +121,14 @@ export class Libreria3dDashboardComponent implements OnInit {
       this.archivoGlbNombre.set(file.name);
     }
     input.value = '';
+  }
+
+  abrirVista(modelo: Modelo3D): void {
+    this.modeloVista.set(modelo);
+  }
+
+  cerrarVista(): void {
+    this.modeloVista.set(null);
   }
 
   seleccionar(modelo: Modelo3D): void {
