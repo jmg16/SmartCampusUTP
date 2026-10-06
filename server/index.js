@@ -192,17 +192,30 @@ function withAbsoluteCoverList(rows) {
   return Array.isArray(rows) ? rows.map(withAbsoluteCover) : rows;
 }
 
+function urlFotoEvento(valor) {
+  const limpio = String(valor || '').split('?')[0].trim();
+  if (/^https?:\/\//i.test(limpio) && !limpio.includes('/api/eventos/')) return limpio;
+  const base = path.basename(limpio).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
+  if (!base || !/^[a-zA-Z0-9_-]+$/.test(base)) return null;
+  return `/api/eventos/foto/${base}`;
+}
+
+function archivoDeFotoEvento(nombre) {
+  const limpio = decodeURIComponent(String(nombre || '').split('?')[0]);
+  const base = path.basename(limpio).replace(/\.(jpe?g|png|gif|webp|heic|heif)$/i, '');
+  if (!base || !/^[a-zA-Z0-9_-]+$/.test(base)) return null;
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+    const archivo = path.join(UPLOADS_EVENTOS_DIR, base + ext);
+    if (fs.existsSync(archivo)) return archivo;
+  }
+  return null;
+}
+
 function withAbsoluteEventImages(event) {
   if (!event || !Array.isArray(event.images)) return event;
   const normalizedImages = event.images
-    .filter((img) => typeof img === 'string' && img.trim())
-    .map((img) => {
-      const trimmed = img.trim();
-      // Acepta URLs antiguas guardadas solo como nombre de archivo.
-      if (/^https?:\/\//i.test(trimmed)) return trimmed;
-      if (trimmed.startsWith('/')) return trimmed;
-      return `/api/eventos/uploads/${trimmed}`;
-    });
+    .map((img) => (typeof img === 'string' ? urlFotoEvento(img) : null))
+    .filter(Boolean);
   return { ...event, images: normalizedImages };
 }
 
@@ -218,6 +231,13 @@ app.use('/api/bitacora/uploads', express.static(UPLOADS_BITACORA_DIR));
 // Servir imágenes de eventos (URL pública para el front)
 app.use('/api/salones/uploads', express.static(UPLOADS_SALONES_DIR));
 app.use('/api/eventos/uploads', express.static(UPLOADS_EVENTOS_DIR));
+
+app.get('/api/eventos/foto/:nombre', (req, res) => {
+  const archivo = archivoDeFotoEvento(req.params.nombre);
+  if (!archivo) return res.status(404).end();
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(archivo);
+});
 
 // Servir archivos de modelos 3D (.glb)
 app.use('/api/modelos3d/uploads', express.static(UPLOADS_MODELOS3D_DIR));
@@ -1350,9 +1370,8 @@ app.delete('/api/eventos/:id', requireBitacoraAuth, async (req, res) => {
     for (const row of prev.rows) {
       const url = row.image_url;
       if (typeof url === 'string') {
-        const filename = path.basename(url);
-        const filePath = path.join(UPLOADS_EVENTOS_DIR, filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const archivo = archivoDeFotoEvento(url);
+        if (archivo) fs.unlinkSync(archivo);
       }
     }
 
@@ -1390,9 +1409,8 @@ app.delete('/api/eventos/:id/images', requireBitacoraAuth, async (req, res) => {
     for (const row of prev.rows) {
       const url = row.image_url;
       if (typeof url === 'string') {
-        const filename = path.basename(url);
-        const filePath = path.join(UPLOADS_EVENTOS_DIR, filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const archivo = archivoDeFotoEvento(url);
+        if (archivo) fs.unlinkSync(archivo);
       }
     }
 
@@ -1428,9 +1446,8 @@ app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('ima
     for (const row of prev.rows) {
       const url = row.image_url;
       if (typeof url === 'string') {
-        const filename = path.basename(url);
-        const filePath = path.join(UPLOADS_EVENTOS_DIR, filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const archivo = archivoDeFotoEvento(url);
+        if (archivo) fs.unlinkSync(archivo);
       }
     }
 
@@ -1439,7 +1456,7 @@ app.put('/api/eventos/:id/images', requireBitacoraAuth, uploadEventos.array('ima
     // Insertar nuevas filas
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const relativePath = `/api/eventos/uploads/${file.filename}`;
+      const relativePath = urlFotoEvento(file.filename);
       await bitacoraPool.query(
         'INSERT INTO project_event_images (event_id, image_url, sort_order) VALUES ($1, $2, $3)',
         [id, relativePath, i]
