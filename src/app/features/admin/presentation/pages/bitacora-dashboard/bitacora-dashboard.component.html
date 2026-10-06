@@ -17,12 +17,6 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <img
-          src="assets/6_logo_utp_-_rgb_oficial.png"
-          alt="Universidad Tecnológica de Panamá"
-          class="h-8 w-auto object-contain hidden sm:block"
-        />
-        <app-sesion-activa />
         <a
           routerLink="/admin/eventos"
           class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors"
@@ -50,6 +44,7 @@
           </svg>
           Sitio público
         </a>
+        <app-sesion-activa />
         <button
           type="button"
           (click)="abrirConfirmacionLogout()"
@@ -62,6 +57,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 17l5-5-5-5M15 12H3" />
           </svg>
         </button>
+        <img
+          src="assets/6_logo_utp_-_rgb_oficial.png"
+          alt="Universidad Tecnológica de Panamá"
+          class="h-8 w-auto object-contain"
+        />
       </div>
     </div>
   </header>
