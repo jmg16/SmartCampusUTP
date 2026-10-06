@@ -1,15 +1,17 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
 import { Mobiliario, Salon } from '../../../../../shared/models/salon.model';
+import '@google/model-viewer';
 
 @Component({
   selector: 'app-salon-admin',
   standalone: true,
   imports: [RouterLink],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './salon-admin.component.html',
 })
 export class SalonAdminComponent implements OnInit, OnDestroy {
@@ -21,6 +23,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
 
   salon = signal<Salon | null>(null);
   modelos = signal<Modelo3D[]>([]);
+  modeloVista = signal<Modelo3D | null>(null);
   cargando = signal(true);
   guardandoMobiliario = signal(false);
   guardandoFoto = signal(false);
@@ -47,9 +50,36 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     });
   }
 
+  serieDe(modelo: Modelo3D): string {
+    return (modelo.reference_code || `modelo-${modelo.id}`).trim();
+  }
+
+  estaEnSalon(modelo: Modelo3D): boolean {
+    const serie = this.serieDe(modelo).toLowerCase();
+    return (this.salon()?.mobiliario ?? []).some((item) => item.serie.toLowerCase() === serie);
+  }
+
+  modeloDe(item: Mobiliario): Modelo3D | undefined {
+    return this.modelos().find((modelo) => this.serieDe(modelo).toLowerCase() === item.serie.toLowerCase());
+  }
+
+  cantidadDe(modelo: Modelo3D): number {
+    const serie = this.serieDe(modelo).toLowerCase();
+    return this.salon()?.mobiliario.find((item) => item.serie.toLowerCase() === serie)?.cantidad ?? 0;
+  }
+
+  abrirVista(item: Mobiliario): void {
+    const modelo = this.modeloDe(item);
+    if (modelo) this.modeloVista.set(modelo);
+  }
+
+  cerrarVista(): void {
+    this.modeloVista.set(null);
+  }
+
   agregarModelo(modelo: Modelo3D): void {
     const espacio = this.salon();
-    const serie = (modelo.reference_code || `modelo-${modelo.id}`).trim();
+    const serie = this.serieDe(modelo);
     if (!espacio || !serie) return;
     const actual = espacio.mobiliario.find((item) => item.serie.toLowerCase() === serie.toLowerCase());
     const mobiliario = actual
