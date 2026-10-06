@@ -140,9 +140,9 @@ const gltf = {
     {
       name: 'Madera chocolate',
       pbrMetallicRoughness: {
-        baseColorFactor: [0.36, 0.2, 0.1, 1],
+        baseColorFactor: [0.1, 0.034, 0.012, 1],
         metallicFactor: 0,
-        roughnessFactor: 0.55,
+        roughnessFactor: 0.72,
       },
     },
     {

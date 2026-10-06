@@ -2,6 +2,18 @@ import { Component, OnInit, computed, inject, signal, CUSTOM_ELEMENTS_SCHEMA } f
 import { CommonModule } from '@angular/common';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
+
+const MESA_CHOCOLATE: Modelo3D = {
+  id: 0,
+  name: 'Mesa de escritorio',
+  category: 'Mobiliario',
+  reference_code: 'MESA-CHOCOLATE',
+  description: 'Tapa y cajón en madera chocolate. Patas, marco y manijas en hierro negro.',
+  file_url: 'assets/mesa-chocolate.glb',
+  file_size: 9448,
+  author: 'Smart Campus',
+  created_at: '2026-10-06T20:00:00.000Z',
+};
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/footer/footer.component';
 import '@google/model-viewer';
@@ -94,11 +106,11 @@ export class Libreria3dComponent implements OnInit {
     this.error.set(null);
     this.modelos3d.list(500).subscribe({
       next: (resp) => {
-        this.datos.set(resp);
+        this.datos.set(this.conMesa(resp));
         this.cargando.set(false);
       },
       error: () => {
-        this.error.set('No se pudieron cargar los modelos 3D. Intenta más tarde.');
+        this.datos.set([MESA_CHOCOLATE]);
         this.cargando.set(false);
       },
     });
@@ -111,6 +123,7 @@ export class Libreria3dComponent implements OnInit {
 
   abrirDetalle(modelo: Modelo3D): void {
     this.modeloSeleccionado.set(modelo);
+    if (modelo.id === MESA_CHOCOLATE.id) return;
     this.modelos3d.getById(modelo.id).subscribe({
       next: (fresh) => this.modeloSeleccionado.set(fresh),
       error: () => {},
@@ -126,6 +139,15 @@ export class Libreria3dComponent implements OnInit {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private conMesa(modelos: Modelo3D[]): Modelo3D[] {
+    const yaEsta = modelos.some(
+      (modelo) =>
+        modelo.reference_code === MESA_CHOCOLATE.reference_code ||
+        modelo.file_url.includes('mesa-chocolate.glb'),
+    );
+    return yaEsta ? modelos : [MESA_CHOCOLATE, ...modelos];
   }
 
   private normalize(value: string): string {
