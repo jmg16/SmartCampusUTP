@@ -6,6 +6,7 @@ import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
+import { ocultarAvisos } from '../../../../../core/utils/ocultar-avisos';
 import { Edificio } from '../../../../../shared/models/edificio.model';
 import { Salon, SalonPayload } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
@@ -37,6 +38,7 @@ export class EdificioAdminComponent implements OnInit {
   guardandoFoto = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
+  private readonly avisosTemporales = ocultarAvisos([this.success, this.error]);
 
   form = this.fb.group({
     id: [null as number | null],

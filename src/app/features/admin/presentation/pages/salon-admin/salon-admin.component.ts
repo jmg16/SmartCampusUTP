@@ -4,6 +4,7 @@ import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
+import { ocultarAvisos } from '../../../../../core/utils/ocultar-avisos';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
 import { Mobiliario, Salon } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
@@ -32,6 +33,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
   guardandoPortada = signal(false);
   mensaje = signal<string | null>(null);
   error = signal<string | null>(null);
+  private readonly avisosTemporales = ocultarAvisos([this.mensaje, this.error]);
   vistaPrevia = signal<string | null>(null);
   nombreFotoPendiente = signal<string | null>(null);
   fotoReciente = signal<string | null>(null);

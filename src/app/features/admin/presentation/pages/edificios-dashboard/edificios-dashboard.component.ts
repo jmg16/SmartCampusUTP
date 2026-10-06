@@ -5,6 +5,7 @@ import { of, switchMap } from 'rxjs';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
+import { ocultarAvisos } from '../../../../../core/utils/ocultar-avisos';
 import { Edificio } from '../../../../../shared/models/edificio.model';
 import '@google/model-viewer';
 
@@ -28,6 +29,7 @@ export class EdificiosDashboardComponent implements OnInit {
   guardando = signal(false);
   error = signal<string | null>(null);
   success = signal<string | null>(null);
+  private readonly avisosTemporales = ocultarAvisos([this.success, this.error]);
   vistaPrevia = signal<string | null>(null);
 
   form = this.fb.group({
