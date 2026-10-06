@@ -110,12 +110,16 @@
             </div>
           </div>
           @if (vistaPrevia(); as previa) {
-            <figure class="mt-6 max-w-sm overflow-hidden rounded-xl bg-gray-100">
-              <img [src]="previa" alt="Vista previa de la fotografía" class="h-56 w-full object-cover" />
-              <figcaption class="px-3 py-2 text-sm text-gray-600">Vista previa. Pulsa Guardar para conservarla.</figcaption>
+            <figure class="mt-6 overflow-hidden rounded-xl border-2 border-utp-blue/30 bg-blue-50 shadow-sm sm:max-w-xl">
+              <div class="flex items-center justify-between gap-3 bg-utp-blue/10 px-4 py-2">
+                <span class="text-sm font-bold text-utp-blue">Vista previa</span>
+                <span class="max-w-[65%] truncate text-xs text-gray-600">{{ nombreFotoPendiente() }}</span>
+              </div>
+              <img [src]="previa" alt="Vista previa de la fotografía" class="max-h-80 w-full bg-gray-100 object-contain" />
+              <figcaption class="px-4 py-3 text-sm text-gray-700">La imagen aún no está guardada. Pulsa <strong>Guardar</strong> para agregarla al inventario.</figcaption>
             </figure>
           }
-          <div class="mt-8 border-t border-gray-100 pt-6">
+          <div id="inventario-fotografico" class="mt-8 scroll-mt-24 border-t border-gray-100 pt-6">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 class="font-bold text-gray-900">Inventario fotográfico del salón</h3>
@@ -128,7 +132,12 @@
           @if (espacio.fotos.length) {
             <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               @for (foto of espacio.fotos; track foto) {
-                <figure class="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm">
+                <figure
+                  [attr.id]="'foto-salon-' + $index"
+                  [class.ring-4]="fotoReciente() === foto"
+                  [class.ring-utp-blue]="fotoReciente() === foto"
+                  class="group relative scroll-mt-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm transition-shadow"
+                >
                   <button type="button" (click)="abrirFoto(foto)" class="block w-full" aria-label="Ver fotografía en grande">
                     <img [src]="foto" alt="Fotografía del salón" class="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10 text-left text-sm font-semibold text-white">

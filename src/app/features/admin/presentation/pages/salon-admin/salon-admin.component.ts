@@ -30,7 +30,10 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
   guardandoFoto = signal(false);
   mensaje = signal<string | null>(null);
   vistaPrevia = signal<string | null>(null);
+  nombreFotoPendiente = signal<string | null>(null);
+  fotoReciente = signal<string | null>(null);
   private fotoPendiente: File | null = null;
+  private temporizadorResalte: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug');
@@ -118,8 +121,18 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     if (!archivo) return;
     this.limpiarVistaPrevia();
     this.fotoPendiente = archivo;
-    this.vistaPrevia.set(URL.createObjectURL(archivo));
+    this.nombreFotoPendiente.set(archivo.name);
     this.mensaje.set(null);
+    const lector = new FileReader();
+    lector.onload = () => {
+      if (this.fotoPendiente === archivo) {
+        this.vistaPrevia.set(String(lector.result));
+      }
+    };
+    lector.onerror = () => {
+      this.mensaje.set('No se pudo generar la vista previa de la imagen.');
+    };
+    lector.readAsDataURL(archivo);
   }
 
   guardarFoto(): void {
@@ -134,9 +147,11 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.salonesService.subirFoto(espacio.id, archivo).subscribe({
       next: (salon) => {
         this.asignar(salon);
+        const nuevaFoto = salon.fotos?.at(-1) ?? null;
         this.limpiarVistaPrevia();
         this.guardandoFoto.set(false);
         this.mensaje.set('Fotografía guardada.');
+        this.mostrarFotoReciente(nuevaFoto, (salon.fotos?.length ?? 1) - 1);
       },
       error: (err) => {
         this.guardandoFoto.set(false);
@@ -159,13 +174,27 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.limpiarVistaPrevia();
+    if (this.temporizadorResalte) clearTimeout(this.temporizadorResalte);
   }
 
   private limpiarVistaPrevia(): void {
     const previa = this.vistaPrevia();
-    if (previa) URL.revokeObjectURL(previa);
+    if (previa?.startsWith('blob:')) URL.revokeObjectURL(previa);
     this.vistaPrevia.set(null);
+    this.nombreFotoPendiente.set(null);
     this.fotoPendiente = null;
+  }
+
+  private mostrarFotoReciente(url: string | null, indice: number): void {
+    if (!url) return;
+    this.fotoReciente.set(url);
+    setTimeout(() => {
+      document
+        .getElementById(`foto-salon-${indice}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    if (this.temporizadorResalte) clearTimeout(this.temporizadorResalte);
+    this.temporizadorResalte = setTimeout(() => this.fotoReciente.set(null), 3000);
   }
 
   cerrarSesion(): void {
