@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
+import { SalonesService } from '../../../../../core/services/salones.service';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
+import { Salon } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
 
 @Component({
@@ -17,6 +19,7 @@ import '@google/model-viewer';
 export class Libreria3dDashboardComponent implements OnInit {
   private fb = inject(FormBuilder);
   private modelos = inject(Modelos3dService);
+  private salonesService = inject(SalonesService);
   private auth = inject(BitacoraService);
   private router = inject(Router);
 
@@ -26,6 +29,9 @@ export class Libreria3dDashboardComponent implements OnInit {
   success = signal<string | null>(null);
   datos = signal<Modelo3D[]>([]);
   modeloVista = signal<Modelo3D | null>(null);
+  salones = signal<Salon[]>([]);
+  salonInventario = signal<number | null>(null);
+  guardandoInventario = signal(false);
   mostrarConfirmacionLogout = signal(false);
 
   archivoGlb = signal<File | null>(null);
@@ -72,6 +78,10 @@ export class Libreria3dDashboardComponent implements OnInit {
           this.form.get('author')?.setValue(actual);
         }
       },
+    });
+    this.salonesService.list().subscribe({
+      next: (salones) => this.salones.set(salones),
+      error: () => this.salones.set([]),
     });
   }
 
@@ -129,6 +139,42 @@ export class Libreria3dDashboardComponent implements OnInit {
 
   cerrarVista(): void {
     this.modeloVista.set(null);
+    this.salonInventario.set(null);
+  }
+
+  agregarAlSalon(): void {
+    const modelo = this.modeloVista();
+    const salonId = this.salonInventario();
+    const salon = this.salones().find((item) => item.id === salonId);
+    if (!modelo || !salon || this.guardandoInventario()) {
+      this.error.set('Elige el salón antes de agregar el mobiliario.');
+      return;
+    }
+    const serie = (modelo.reference_code || `modelo-${modelo.id}`).trim();
+    const inventario = salon.mobiliario ?? [];
+    const yaEsta = inventario.some((item) => item.serie.toLowerCase() === serie.toLowerCase());
+    const mobiliario = yaEsta
+      ? inventario.map((item) =>
+          item.serie.toLowerCase() === serie.toLowerCase() ? { ...item, cantidad: item.cantidad + 1 } : item
+        )
+      : [...inventario, { nombre: modelo.name, cantidad: 1, serie }];
+    this.guardandoInventario.set(true);
+    this.error.set(null);
+    this.salonesService.guardarMobiliario(salon.id, mobiliario).subscribe({
+      next: (actualizado) => {
+        this.salones.update((lista) => lista.map((item) => (item.id === actualizado.id ? actualizado : item)));
+        this.guardandoInventario.set(false);
+        this.success.set(
+          yaEsta
+            ? `Se sumó una unidad de ${modelo.name} en ${actualizado.nombre}.`
+            : `${modelo.name} quedó en el inventario de ${actualizado.nombre}.`
+        );
+      },
+      error: (err) => {
+        this.guardandoInventario.set(false);
+        this.error.set(err?.error?.mensaje || 'No se pudo agregar el mobiliario.');
+      },
+    });
   }
 
   seleccionar(modelo: Modelo3D): void {

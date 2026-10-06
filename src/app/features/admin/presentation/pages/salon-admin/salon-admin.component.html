@@ -25,33 +25,28 @@
         </section>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <h2 class="text-lg font-bold text-gray-900">Mobiliario</h2>
-          <p class="mt-1 text-sm text-gray-600">Elige el objeto, la cantidad y el número de serie.</p>
-          <div class="mt-4 grid gap-3 sm:grid-cols-[1fr_7rem_1fr_auto] sm:items-end">
-            <div>
-              <label for="objeto" class="mb-1 block text-sm font-medium text-gray-700">Objeto *</label>
-              <select id="objeto" [value]="pieza" (change)="pieza = $any($event.target).value" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20">
-                @for (objeto of catalogoMobiliario; track objeto) {
-                  <option [value]="objeto">{{ objeto }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label for="cantidad" class="mb-1 block text-sm font-medium text-gray-700">Cantidad *</label>
-              <input id="cantidad" type="number" min="1" max="999" [value]="cantidadPieza" (input)="cantidadPieza = $any($event.target).valueAsNumber" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-            </div>
-            <div>
-              <label for="serie" class="mb-1 block text-sm font-medium text-gray-700">Número de serie *</label>
-              <input id="serie" type="text" [value]="seriePieza" (input)="seriePieza = $any($event.target).value" placeholder="Número de serie" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 outline-none focus:border-utp-blue focus:ring-2 focus:ring-utp-blue/20" />
-            </div>
-            <button type="button" (click)="agregarMobiliario()" [disabled]="guardandoMobiliario()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-utp-blue px-4 py-2 font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-8H7v8M7 3v5h8" />
-              </svg>
-              {{ guardandoMobiliario() ? 'Guardando...' : 'Guardar' }}
-            </button>
-          </div>
+          <h2 class="text-lg font-bold text-gray-900">Inventario del salón</h2>
+          <p class="mt-1 text-sm text-gray-600">Agrega el mobiliario de la librería 3D con un botón. Si ya está, se suma una unidad.</p>
+          @if (modelos().length === 0) {
+            <p class="mt-4 text-sm text-gray-500">Todavía no hay modelos en la librería 3D.</p>
+          } @else {
+            <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+              @for (modelo of modelos(); track modelo.id) {
+                <li class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium text-gray-900">{{ modelo.name }}</p>
+                    <p class="mt-0.5 text-xs text-gray-500">{{ modelo.category }}@if (modelo.reference_code) { · {{ modelo.reference_code }} }</p>
+                  </div>
+                  <button type="button" (click)="agregarModelo(modelo)" [disabled]="guardandoMobiliario()" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-utp-blue px-3 py-1.5 text-sm font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Agregar
+                  </button>
+                </li>
+              }
+            </ul>
+          }
           @if (espacio.mobiliario.length) {
             <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               @for (item of espacio.mobiliario; track item.serie; let i = $index) {

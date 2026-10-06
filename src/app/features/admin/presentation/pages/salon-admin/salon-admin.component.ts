@@ -1,7 +1,9 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
+import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
 import { Mobiliario, Salon } from '../../../../../shared/models/salon.model';
 
 @Component({
@@ -14,29 +16,15 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private salonesService = inject(SalonesService);
+  private modelos3d = inject(Modelos3dService);
   private auth = inject(BitacoraService);
 
-  readonly catalogoMobiliario = [
-    'Silla',
-    'Mesa',
-    'Escritorio',
-    'Pupitre',
-    'Computadora',
-    'Proyector',
-    'Pizarra',
-    'Pantalla',
-    'Aire acondicionado',
-    'Impresora',
-  ];
-
   salon = signal<Salon | null>(null);
+  modelos = signal<Modelo3D[]>([]);
   cargando = signal(true);
   guardandoMobiliario = signal(false);
   guardandoFoto = signal(false);
   mensaje = signal<string | null>(null);
-  pieza = this.catalogoMobiliario[0];
-  cantidadPieza = 1;
-  seriePieza = '';
   vistaPrevia = signal<string | null>(null);
   private fotoPendiente: File | null = null;
 
@@ -53,22 +41,25 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
       },
       error: () => this.cargando.set(false),
     });
+    this.modelos3d.list(200).subscribe({
+      next: (modelos) => this.modelos.set(modelos),
+      error: () => this.modelos.set([]),
+    });
   }
 
-  agregarMobiliario(): void {
+  agregarModelo(modelo: Modelo3D): void {
     const espacio = this.salon();
-    const nombre = this.pieza.trim();
-    const serie = this.seriePieza.trim();
-    const cantidad = Number(this.cantidadPieza);
-    if (!espacio || !nombre || !serie || !Number.isInteger(cantidad) || cantidad < 1) {
-      this.mensaje.set('Indica el objeto, la cantidad y el número de serie.');
-      return;
-    }
-    if (espacio.mobiliario.some((item) => item.serie.toLowerCase() === serie.toLowerCase())) {
-      this.mensaje.set('Ese número de serie ya está registrado en este salón.');
-      return;
-    }
-    this.guardarMobiliario([...espacio.mobiliario, { nombre, cantidad, serie }]);
+    const serie = (modelo.reference_code || `modelo-${modelo.id}`).trim();
+    if (!espacio || !serie) return;
+    const actual = espacio.mobiliario.find((item) => item.serie.toLowerCase() === serie.toLowerCase());
+    const mobiliario = actual
+      ? espacio.mobiliario.map((item) =>
+          item.serie.toLowerCase() === serie.toLowerCase()
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        )
+      : [...espacio.mobiliario, { nombre: modelo.name, cantidad: 1, serie }];
+    this.guardarMobiliario(mobiliario, actual ? 'Se sumó una unidad al inventario.' : 'Mobiliario agregado al inventario.');
   }
 
   quitarMobiliario(indice: number): void {
@@ -136,7 +127,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     void this.router.navigateByUrl('/admin/login');
   }
 
-  private guardarMobiliario(mobiliario: Mobiliario[]): void {
+  private guardarMobiliario(mobiliario: Mobiliario[], aviso = 'Mobiliario guardado.'): void {
     const espacio = this.salon();
     if (!espacio || this.guardandoMobiliario()) return;
     this.guardandoMobiliario.set(true);
@@ -144,10 +135,8 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     this.salonesService.guardarMobiliario(espacio.id, mobiliario).subscribe({
       next: (salon) => {
         this.asignar(salon);
-        this.cantidadPieza = 1;
-        this.seriePieza = '';
         this.guardandoMobiliario.set(false);
-        this.mensaje.set('Mobiliario guardado.');
+        this.mensaje.set(aviso);
       },
       error: (err) => {
         this.guardandoMobiliario.set(false);
