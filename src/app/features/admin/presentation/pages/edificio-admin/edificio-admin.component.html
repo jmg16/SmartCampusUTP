@@ -30,34 +30,11 @@
               @if (lugar.foto) {
                 <img [src]="lugar.foto" [alt]="'Portada de ' + lugar.nombre" class="absolute inset-0 h-full w-full object-cover object-center" />
               } @else {
-                @if (visorBim(); as visor) {
-                  <iframe
-                    title="Gemelo 3D del edificio"
-                    [src]="visor"
-                    class="absolute inset-0 h-full w-full border-0"
-                    allow="fullscreen; xr-spatial-tracking"
-                    allowfullscreen
-                    referrerpolicy="strict-origin-when-cross-origin"
-                  ></iframe>
-                } @else if (lugar.modelo_url) {
-                  <div class="absolute inset-0 h-full w-full bg-gradient-to-b from-gray-800 to-gray-900">
-                    <model-viewer
-                      [attr.src]="lugar.modelo_url"
-                      auto-rotate
-                      camera-controls
-                      shadow-intensity="1"
-                      environment-image="neutral"
-                      class="h-full w-full"
-                      style="--poster-color: transparent;"
-                    ></model-viewer>
-                  </div>
-                } @else {
-                  <div class="absolute inset-0 flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
-                    <svg class="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5 8.25 11.25 12 15l2.25-2.25L21 19.5M14.25 8.25h.008v.008h-.008V8.25ZM5.25 4.5h13.5A2.25 2.25 0 0 1 21 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 17.25V6.75A2.25 2.25 0 0 1 5.25 4.5Z" />
-                    </svg>
-                  </div>
-                }
+                <div class="absolute inset-0 flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
+                  <svg class="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5 8.25 11.25 12 15l2.25-2.25L21 19.5M14.25 8.25h.008v.008h-.008V8.25ZM5.25 4.5h13.5A2.25 2.25 0 0 1 21 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 17.25V6.75A2.25 2.25 0 0 1 5.25 4.5Z" />
+                  </svg>
+                </div>
               }
 
               <div class="absolute bottom-4 right-4 flex flex-wrap items-center justify-end gap-2">
@@ -91,6 +68,34 @@
                 }
               </p>
             </div>
+            @if (visorBim(); as visor) {
+              <div class="border-t border-slate-200">
+                <p class="px-5 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Modelo 3D</p>
+                <iframe
+                  title="Gemelo 3D del edificio"
+                  [src]="visor"
+                  class="mt-3 h-80 w-full border-0 sm:h-96 lg:h-[32rem]"
+                  allow="fullscreen; xr-spatial-tracking"
+                  allowfullscreen
+                  referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
+              </div>
+            } @else if (lugar.modelo_url) {
+              <div class="border-t border-slate-200">
+                <p class="px-5 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Modelo 3D</p>
+                <div class="mt-3 h-80 w-full bg-gradient-to-b from-gray-800 to-gray-900 sm:h-96 lg:h-[32rem]">
+                  <model-viewer
+                    [attr.src]="lugar.modelo_url"
+                    auto-rotate
+                    camera-controls
+                    shadow-intensity="1"
+                    environment-image="neutral"
+                    class="h-full w-full"
+                    style="--poster-color: transparent;"
+                  ></model-viewer>
+                </div>
+              </div>
+            }
           </section>
 
           <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
