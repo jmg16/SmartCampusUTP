@@ -94,6 +94,9 @@ const storageEventos = multer.diskStorage({
   },
 });
 
+// Las cámaras de los teléfonos generan fotos de varios megabytes.
+const FOTO_MAX_BYTES = 25 * 1024 * 1024;
+
 const storageSalones = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_SALONES_DIR),
   filename: (_req, file, cb) => {
@@ -103,7 +106,7 @@ const storageSalones = multer.diskStorage({
 });
 const uploadSalonFoto = multer({
   storage: storageSalones,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: FOTO_MAX_BYTES },
   fileFilter: (_req, file, cb) => {
     cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
   },
@@ -117,7 +120,7 @@ const uploadEdificioFoto = multer({
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext.startsWith('.') ? ext : `.${ext}`}`);
     },
   }),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: FOTO_MAX_BYTES },
   fileFilter: (_req, file, cb) => {
     cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
   },
@@ -1990,6 +1993,19 @@ app.post('/api/registro', async (req, res) => {
 // Ruta base informativa para evitar "Cannot GET /" cuando se accede directo al puerto de la API
 app.get('/', (_req, res) => {
   res.send('API Smart Campus en funcionamiento');
+});
+
+app.use((err, _req, res, next) => {
+  if (!err) return next();
+  if (err instanceof multer.MulterError) {
+    const mensaje =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? `La imagen supera el máximo de ${Math.round(FOTO_MAX_BYTES / (1024 * 1024))} MB.`
+        : 'No se pudo procesar el archivo enviado.';
+    return res.status(400).json({ ok: false, mensaje });
+  }
+  console.error('Error no controlado:', err);
+  res.status(500).json({ ok: false, mensaje: 'Error inesperado en el servidor.' });
 });
 
 ensureEventosTable();
