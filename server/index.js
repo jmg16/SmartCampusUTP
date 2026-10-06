@@ -872,6 +872,9 @@ async function resolverEdificio(data) {
 app.get('/api/salones/foto/:nombre', (req, res) => {
   const archivo = archivoDeFotoSalon(req.params.nombre);
   if (!archivo) return res.status(404).end();
+  if (req.query.descargar === '1') {
+    return res.download(archivo, path.basename(archivo));
+  }
   res.sendFile(archivo);
 });
 

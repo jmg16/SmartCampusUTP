@@ -115,16 +115,36 @@
               <figcaption class="px-3 py-2 text-sm text-gray-600">Vista previa. Pulsa Guardar para conservarla.</figcaption>
             </figure>
           }
+          <div class="mt-8 border-t border-gray-100 pt-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="font-bold text-gray-900">Inventario fotográfico del salón</h3>
+                <p class="mt-1 text-sm text-gray-600">Pulsa una imagen para verla en grande y descargarla.</p>
+              </div>
+              <span class="rounded-full bg-utp-blue/10 px-3 py-1 text-sm font-semibold text-utp-blue">
+                {{ espacio.fotos.length }} {{ espacio.fotos.length === 1 ? 'fotografía' : 'fotografías' }}
+              </span>
+            </div>
           @if (espacio.fotos.length) {
-            <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               @for (foto of espacio.fotos; track foto) {
-                <figure class="relative overflow-hidden rounded-xl bg-gray-100">
-                  <img [src]="foto" alt="Fotografía del salón" class="h-56 w-full object-cover" />
-                  <button type="button" (click)="eliminarFoto(foto)" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600" aria-label="Eliminar fotografía">×</button>
+                <figure class="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm">
+                  <button type="button" (click)="abrirFoto(foto)" class="block w-full" aria-label="Ver fotografía en grande">
+                    <img [src]="foto" alt="Fotografía del salón" class="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <span class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10 text-left text-sm font-semibold text-white">
+                      Ver y descargar
+                    </span>
+                  </button>
+                  <button type="button" (click)="eliminarFoto(foto); $event.stopPropagation()" class="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600" aria-label="Eliminar fotografía">×</button>
                 </figure>
               }
             </div>
+          } @else {
+            <div class="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+              Aún no hay fotografías guardadas en este salón.
+            </div>
           }
+          </div>
         </section>
 
         @if (mensaje()) {
@@ -180,6 +200,35 @@
               </div>
             }
           </dl>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (fotoVista(); as foto) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" (click)="cerrarFoto()">
+      <div class="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-6">
+          <div>
+            <h2 class="font-bold text-gray-900">Fotografía del salón</h2>
+            <p class="text-xs text-gray-500">{{ salon()?.nombre }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a [href]="urlDescargaFoto(foto)" class="inline-flex items-center gap-2 rounded-xl bg-utp-blue px-4 py-2 text-sm font-semibold text-white hover:bg-utp-blue-dark">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M4.5 19.5h15" />
+              </svg>
+              Descargar
+            </a>
+            <button type="button" (click)="cerrarFoto()" class="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800" aria-label="Cerrar fotografía">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="min-h-0 flex-1 overflow-auto bg-slate-950 p-3 sm:p-5">
+          <img [src]="foto" alt="Fotografía ampliada del salón" class="mx-auto max-h-[75vh] w-auto max-w-full rounded-lg object-contain" />
         </div>
       </div>
     </div>

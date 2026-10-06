@@ -24,6 +24,7 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
   salon = signal<Salon | null>(null);
   modelos = signal<Modelo3D[]>([]);
   modeloVista = signal<Modelo3D | null>(null);
+  fotoVista = signal<string | null>(null);
   cargando = signal(true);
   guardandoMobiliario = signal(false);
   guardandoFoto = signal(false);
@@ -75,6 +76,18 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
 
   cerrarVista(): void {
     this.modeloVista.set(null);
+  }
+
+  abrirFoto(url: string): void {
+    this.fotoVista.set(url);
+  }
+
+  cerrarFoto(): void {
+    this.fotoVista.set(null);
+  }
+
+  urlDescargaFoto(url: string): string {
+    return `${url}${url.includes('?') ? '&' : '?'}descargar=1`;
   }
 
   agregarModelo(modelo: Modelo3D): void {
@@ -136,7 +149,10 @@ export class SalonAdminComponent implements OnInit, OnDestroy {
     const espacio = this.salon();
     if (!espacio) return;
     this.salonesService.eliminarFoto(espacio.id, url).subscribe({
-      next: (salon) => this.asignar(salon),
+      next: (salon) => {
+        if (this.fotoVista() === url) this.cerrarFoto();
+        this.asignar(salon);
+      },
       error: (err) => this.mensaje.set(err?.error?.mensaje || 'No se pudo eliminar la fotografía.'),
     });
   }
