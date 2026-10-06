@@ -82,10 +82,10 @@
                         <model-viewer
                           [attr.src]="modelo.file_url"
                           auto-rotate
-                          camera-controls
                           shadow-intensity="1"
                           environment-image="neutral"
-                          class="w-full h-full"
+                          interaction-prompt="none"
+                          class="pointer-events-none w-full h-full"
                           style="--poster-color: transparent;"
                         ></model-viewer>
                         <div class="absolute inset-0 bg-utp-blue/0 group-hover:bg-utp-blue/5 transition-colors pointer-events-none rounded-t-2xl"></div>

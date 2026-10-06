@@ -64,7 +64,10 @@
 
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           @for (salon of salones(); track salon.id) {
-            <article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow">
+            <article
+              [routerLink]="['/salones', salon.slug]"
+              class="block cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow"
+            >
               <div class="flex h-52 flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700">
                 <svg class="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01" />

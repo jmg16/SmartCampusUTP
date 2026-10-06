@@ -30,8 +30,8 @@
           @if (espacio.mobiliario.length) {
             <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               @for (item of espacio.mobiliario; track item.serie; let i = $index) {
-                <li class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                  <button type="button" (click)="abrirVista(item)" class="block w-full text-left" [disabled]="!modeloDe(item)">
+                <li class="cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white" (click)="abrirVista(item)">
+                  <div class="block w-full text-left">
                     @if (modeloDe(item); as modelo) {
                       <div class="pointer-events-none h-36 bg-gradient-to-b from-gray-800 to-gray-900">
                         <model-viewer [attr.src]="modelo.file_url" auto-rotate shadow-intensity="1" environment-image="neutral" interaction-prompt="none" class="h-full w-full" style="--poster-color: transparent;"></model-viewer>
@@ -41,9 +41,9 @@
                       <p class="text-sm font-medium text-gray-900">{{ item.nombre }} <span class="text-utp-blue">× {{ item.cantidad }}</span></p>
                       <p class="mt-1 text-xs text-gray-500">Serie {{ item.serie }}</p>
                     </div>
-                  </button>
+                  </div>
                   <div class="flex justify-end border-t border-gray-100 px-3 py-2">
-                    <button type="button" (click)="quitarMobiliario(i)" class="text-xs font-medium text-red-600 hover:underline">Quitar del salón</button>
+                    <button type="button" (click)="quitarMobiliario(i); $event.stopPropagation()" class="text-xs font-medium text-red-600 hover:underline">Quitar del salón</button>
                   </div>
                 </li>
               }
@@ -60,12 +60,12 @@
             <ul class="mt-4 grid gap-3 sm:grid-cols-2">
               @for (modelo of modelos(); track modelo.id) {
                 @if (!estaEnSalon(modelo)) {
-                  <li class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
+                  <li class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2" (click)="agregarModelo(modelo)">
                     <div class="min-w-0">
                       <p class="truncate text-sm font-medium text-gray-900">{{ modelo.name }}</p>
                       <p class="mt-0.5 text-xs text-gray-500">{{ modelo.category }}@if (modelo.reference_code) { · {{ modelo.reference_code }} }</p>
                     </div>
-                    <button type="button" (click)="agregarModelo(modelo)" [disabled]="guardandoMobiliario()" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-utp-blue px-3 py-1.5 text-sm font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
+                    <button type="button" (click)="agregarModelo(modelo); $event.stopPropagation()" [disabled]="guardandoMobiliario()" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-utp-blue px-3 py-1.5 text-sm font-semibold text-white hover:bg-utp-blue/90 disabled:opacity-50">
                       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" />
                       </svg>

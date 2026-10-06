@@ -73,7 +73,11 @@ export class EdificioAdminComponent implements OnInit, OnDestroy {
 
   private urlVisorBim(url: string | null): SafeResourceUrl | null {
     if (!url || !url.startsWith('https://bimch.utp.ac.pa/')) return null;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    const base = url.split('#')[0];
+    const conEmbed = url.includes('isEnabled')
+      ? url
+      : `${base}#embed=%7B%22isEnabled%22%3Atrue%7D`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(conEmbed);
   }
 
   get editando(): boolean {

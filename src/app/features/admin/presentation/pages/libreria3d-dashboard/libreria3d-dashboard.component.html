@@ -145,23 +145,21 @@
       } @else {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           @for (modelo of datos(); track modelo.id) {
-            <div class="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              <button type="button" (click)="abrirVista(modelo)" class="block w-full text-left" [attr.aria-label]="'Ver ' + modelo.name">
-                <div class="h-44 bg-gradient-to-b from-gray-800 to-gray-900 pointer-events-none">
-                  <model-viewer
-                    [attr.src]="modelo.file_url"
-                    auto-rotate
-                    shadow-intensity="1"
-                    environment-image="neutral"
-                    interaction-prompt="none"
-                    class="w-full h-full"
-                    style="--poster-color: transparent;"
-                  ></model-viewer>
-                </div>
-              </button>
+            <div class="cursor-pointer rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" (click)="abrirVista(modelo)">
+              <div class="h-44 bg-gradient-to-b from-gray-800 to-gray-900 pointer-events-none" [attr.aria-label]="'Ver ' + modelo.name">
+                <model-viewer
+                  [attr.src]="modelo.file_url"
+                  auto-rotate
+                  shadow-intensity="1"
+                  environment-image="neutral"
+                  interaction-prompt="none"
+                  class="pointer-events-none w-full h-full"
+                  style="--poster-color: transparent;"
+                ></model-viewer>
+              </div>
               <div class="p-3">
                 <div class="flex items-start justify-between gap-2 mb-1">
-                  <button type="button" (click)="abrirVista(modelo)" class="text-left text-sm font-bold text-gray-900 leading-snug hover:text-utp-blue">{{ modelo.name }}</button>
+                  <p class="text-left text-sm font-bold text-gray-900 leading-snug">{{ modelo.name }}</p>
                   <span class="shrink-0 inline-flex items-center rounded-full bg-utp-blue/10 text-utp-blue px-2 py-0.5 text-[10px] font-semibold">
                     {{ modelo.category }}
                   </span>
@@ -174,10 +172,10 @@
                   {{ modelo.author }} · {{ formatSize(modelo.file_size) }}
                 </p>
                 <div class="flex items-center gap-2">
-                  <button type="button" (click)="seleccionar(modelo)" class="flex-1 rounded-lg border border-utp-blue text-utp-blue px-2 py-1.5 text-xs font-semibold hover:bg-utp-blue/5 transition-colors">
+                  <button type="button" (click)="seleccionar(modelo); $event.stopPropagation()" class="flex-1 rounded-lg border border-utp-blue text-utp-blue px-2 py-1.5 text-xs font-semibold hover:bg-utp-blue/5 transition-colors">
                     Editar
                   </button>
-                  <button type="button" (click)="eliminar(modelo)" class="flex-1 rounded-lg border border-red-300 text-red-600 px-2 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors">
+                  <button type="button" (click)="eliminar(modelo); $event.stopPropagation()" class="flex-1 rounded-lg border border-red-300 text-red-600 px-2 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors">
                     Eliminar
                   </button>
                 </div>

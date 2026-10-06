@@ -443,7 +443,7 @@ async function ensureEdificiosTable() {
       await bitacoraPool.query(
         `INSERT INTO campus_buildings (slug, name, bim_url) VALUES ($1, $2, $3)
          ON CONFLICT (name) DO UPDATE
-         SET bim_url = COALESCE(campus_buildings.bim_url, EXCLUDED.bim_url)`,
+         SET bim_url = EXCLUDED.bim_url`,
         [slugifySalon(edificio.nombre), edificio.nombre, edificio.bim]
       );
     }
