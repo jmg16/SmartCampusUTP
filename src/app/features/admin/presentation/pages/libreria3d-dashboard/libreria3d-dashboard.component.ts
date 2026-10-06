@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 import { Modelo3D } from '../../../../../shared/models/modelo3d.model';
 import { Salon } from '../../../../../shared/models/salon.model';
 import '@google/model-viewer';
@@ -12,7 +13,7 @@ import '@google/model-viewer';
 @Component({
   selector: 'app-libreria3d-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SesionActivaComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './libreria3d-dashboard.component.html',
 })

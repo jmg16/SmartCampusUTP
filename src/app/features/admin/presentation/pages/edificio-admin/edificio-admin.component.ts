@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
@@ -14,7 +15,7 @@ import '@google/model-viewer';
 @Component({
   selector: 'app-edificio-admin',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SesionActivaComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './edificio-admin.component.html',
 })

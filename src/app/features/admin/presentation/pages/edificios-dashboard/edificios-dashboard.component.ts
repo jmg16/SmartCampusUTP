@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 import { EdificiosService } from '../../../../../core/services/edificios.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
 import { ocultarAvisos } from '../../../../../core/utils/ocultar-avisos';
@@ -12,7 +13,7 @@ import '@google/model-viewer';
 @Component({
   selector: 'app-edificios-dashboard',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SesionActivaComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './edificios-dashboard.component.html',
 })

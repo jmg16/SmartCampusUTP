@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 import { BitacoraStatus, ProjectLog } from '../../../../../shared/models/bitacora.model';
 
 @Component({
   selector: 'app-bitacora-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SesionActivaComponent],
   templateUrl: './bitacora-dashboard.component.html',
 })
 export class BitacoraDashboardComponent implements OnInit {

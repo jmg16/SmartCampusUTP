@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SesionActivaComponent],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css',
 })

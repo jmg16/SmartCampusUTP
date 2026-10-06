@@ -4,12 +4,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { EventosService } from '../../../../../core/services/eventos.service';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 import { EventoPost } from '../../../../../shared/models/evento.model';
 
 @Component({
   selector: 'app-eventos-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SesionActivaComponent],
   templateUrl: './eventos-dashboard.component.html',
 })
 export class EventosDashboardComponent implements OnInit {

@@ -1,6 +1,7 @@
 import { CUSTOM_ELEMENTS_SCHEMA, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BitacoraService } from '../../../../../core/services/bitacora.service';
+import { SesionActivaComponent } from '../../../../../shared/components/sesion-activa/sesion-activa.component';
 import { Modelos3dService } from '../../../../../core/services/modelos3d.service';
 import { SalonesService } from '../../../../../core/services/salones.service';
 import { comprimirImagen } from '../../../../../core/utils/comprimir-imagen';
@@ -12,7 +13,7 @@ import '@google/model-viewer';
 @Component({
   selector: 'app-salon-admin',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, SesionActivaComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './salon-admin.component.html',
 })

@@ -31,15 +31,9 @@
           routerLink="/"
           class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20 hover:bg-white/20 transition-colors"
         >
-          Volver al sitio
+          Sitio público
         </a>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50 border border-white/20"
-        >
-          <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.4)]"></span>
-          Sesión activa
-        </button>
+        <app-sesion-activa />
         <button
           type="button"
           (click)="abrirConfirmacionLogout()"
